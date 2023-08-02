@@ -18,6 +18,10 @@ drun: dbuild
 rrun: rbuild
     cross run --release
 
+# Copy binary
+bin: rrun
+    cp target/armv7-unknown-linux-gnueabihf/release/cross-hello bin/
+
 # Print binary size
 size:
     cargo size -q --release
@@ -25,3 +29,4 @@ size:
 # Clean target
 clean:
     rm -rf ./target
+    rm -rf ./bin
