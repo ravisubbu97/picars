@@ -19,7 +19,7 @@ rrun: rbuild
     cross run --release
 
 # Copy binary
-bin: rrun
+bin:
     cp target/armv7-unknown-linux-gnueabihf/release/cross-hello bin/
 
 # Print binary size
