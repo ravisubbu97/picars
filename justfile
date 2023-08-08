@@ -24,7 +24,8 @@ bin:
 
 # Print binary size
 size:
-    cargo size -q --release
+    @ls -sh ./bin/*
+    @cargo size -q --release
 
 # Clean target
 clean:
