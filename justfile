@@ -28,5 +28,5 @@ size:
 
 # Clean target
 clean:
-    rm -rf ./target
-    rm -rf ./bin
+    cargo clean -vv
+    rm -rf ./bin/*
