@@ -1,6 +1,6 @@
 # List commands
 default:
-  just --list
+  @just --list
 
 # Debug build
 dbuild:
@@ -18,16 +18,15 @@ drun: dbuild
 rrun: rbuild
     cross run --release
 
-# Copy binary
+# Create binary
 bin:
-    cp target/armv7-unknown-linux-gnueabihf/release/cross-hello bin/
+    cargo objcopy --release -q -- -O binary bin/image.bin
 
 # Print binary size
 size:
-    @ls -sh ./bin/*
-    @cargo size -q --release
+    @ls -sh ./bin/image.bin
 
 # Clean target
 clean:
-    cargo clean -vv
+    @cargo clean -vv
     rm -rf ./bin/*
