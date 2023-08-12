@@ -24,7 +24,7 @@ rrun: rbuild
     cross run --release --target-dir {{TARGET_DIR}} --target {{TARGET_NAME}} -vv
 
 # Create binary
-bin: rbuild
+bin: clean rbuild
     @# cross objcopy --release -vv -- -O binary bin/dust.bin --> FIX ME !!
     cp {{TARGET_DIR}}/{{TARGET_NAME}}/release/dust ./bin/{{BUILD_NAME}}
 
@@ -38,3 +38,8 @@ clean:
     rm -rf ./target/
     rm -rf ./target-aarch64-unknown-linux-gnu/
     rm -rf ./target-armv7-unknown-linux-gnueabihf/
+
+# Git
+git:
+    git status
+    git diff
