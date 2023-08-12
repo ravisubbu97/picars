@@ -20,11 +20,11 @@ rrun: rbuild
 
 # Create binary
 bin:
-    cargo objcopy --release -q -- -O binary bin/image.bin
+    cargo objcopy --release -vv -- -O binary bin/dust.bin
 
 # Print binary size
 size:
-    @ls -sh ./bin/image.bin
+    @ls -sh ./bin/dust.bin
 
 # Clean target
 clean:

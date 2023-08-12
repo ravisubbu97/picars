@@ -1,0 +1,8 @@
+[package]
+name = "dust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rppal = "0.14.1"
+anyhow = "1.0"

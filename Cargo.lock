@@ -9,7 +9,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
 
 [[package]]
-name = "cross-hello"
+name = "drishti"
+version = "0.1.0"
+
+[[package]]
+name = "dust"
 version = "0.1.0"
 dependencies = [
  "anyhow",
