@@ -20,7 +20,7 @@ rrun: rbuild
 
 # Create binary
 bin: rbuild
-    cargo objcopy --release -vv -- -O binary bin/dust.bin
+    cross objcopy --release -vv -- -O binary bin/dust.bin
 
 # Print binary size
 size:
