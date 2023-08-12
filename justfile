@@ -35,6 +35,6 @@ size:
 # Clean target
 clean:
     rm -rf ./bin/*
-    rm -rf ./target/*
-    rm -rf ./target-aarch64-unknown-linux-gnu/*
-    rm -rf ./target-armv7-unknown-linux-gnueabihf/*
+    rm -rf ./target/
+    rm -rf ./target-aarch64-unknown-linux-gnu/
+    rm -rf ./target-armv7-unknown-linux-gnueabihf/
