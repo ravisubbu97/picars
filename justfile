@@ -20,7 +20,8 @@ rrun: rbuild
 
 # Create binary
 bin: rbuild
-    cross objcopy --release -vv -- -O binary bin/dust.bin
+    @# cross objcopy --release -vv -- -O binary bin/dust.bin --> FIX ME !!
+    cp ./target/armv7-unknown-linux-gnueabihf/release/dust ./bin/dust.bin
 
 # Print binary size
 size:
