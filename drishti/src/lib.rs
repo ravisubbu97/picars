@@ -1,14 +1,8 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use std::process::Command;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub fn capture(timeout: &str, path: &str) {
+    Command::new("raspistill")
+        .args(["-t", timeout, "-o", path])
+        .output()
+        .expect("raspistill sucks !!");
 }
