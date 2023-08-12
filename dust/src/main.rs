@@ -12,8 +12,9 @@ use drishti::eyes::capture;
 
 fn main() -> Result<()> {
     println!("DEVICE: {}", DeviceInfo::new()?.model());
-
-    capture("1000", "../../images/image.jpg");
+    let image_path = "images/image.jpg";
+    capture("1000", image_path);
+    println!("Image saved at: {:?}", image_path);
 
     Ok(())
 }
