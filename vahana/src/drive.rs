@@ -30,5 +30,6 @@ pub fn periodic_run() -> Result<()> {
     left_red.set_low();
     right_red.set_low();
     thread::sleep(Duration::from_millis(6000));
+
     Ok(())
 }
