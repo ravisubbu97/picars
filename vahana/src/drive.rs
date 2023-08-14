@@ -18,17 +18,15 @@ pub fn periodic_run() -> Result<()> {
     let mut right_black = Gpio::new()?.get(RIGHT_BLACK)?.into_output();
 
     left_red.set_high();
-    right_red.set_high();
-    thread::sleep(Duration::from_millis(6000));
     left_black.set_low();
+    right_red.set_high();
     right_black.set_low();
     thread::sleep(Duration::from_millis(6000));
 
-    left_black.set_high();
-    right_black.set_high();
-    thread::sleep(Duration::from_millis(6000));
     left_red.set_low();
+    left_black.set_high();
     right_red.set_low();
+    right_black.set_high();
     thread::sleep(Duration::from_millis(6000));
 
     Ok(())
