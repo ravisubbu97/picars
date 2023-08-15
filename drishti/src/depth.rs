@@ -45,6 +45,12 @@ impl Ultrasonic {
         }
 
         let time_taken = pulse_end.duration_since(pulse_start).as_secs();
+
+        // Debug
+        println!("pulse_start = {:?}", pulse_start);
+        println!("pulse_end = {:?}", pulse_end);
+        println!("time_taken = {}", time_taken);
+
         let cm = time_taken * 340 / 2 * 100;
         Ok(cm)
     }
