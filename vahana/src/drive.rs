@@ -1,26 +1,81 @@
-use std::thread;
+use anyhow::Result;
+use rppal::gpio::{self, Gpio, OutputPin};
+use rppal::pwm::{Channel, Polarity, Pwm};
 use std::time::Duration;
 
-use anyhow::Result;
-use rppal::gpio::Gpio;
+// Period: 20 ms (50 Hz). Pulse width: min. 1200 µs, neutral 1500 µs, max. 1800 µs.
+const PERIOD_MS: u64 = 20;
+// const PULSE_MIN_US: u64 = 1000;
+// const PULSE_NEUTRAL_US: u64 = 1500;
+const PULSE_MAX_US: u64 = 2000;
 
-const LEFT_RED: u8 = 4;  // connecting to GPIO pin 4 as per sun founder module
-// const LEFT_BLACK: u8 = 24;
+pub struct Motor {
+    left_rear_pwm_pin: Pwm,
+    right_rear_pwm_pin: Pwm,
+    left_rear_dir_pin: OutputPin,
+    right_rear_dir_pin: OutputPin,
+}
 
-const RIGHT_RED: u8 = 5; // connecting to GPIO pin 5 as per sun founder module
-// const RIGHT_BLACK: u8 = 8;
+impl Motor {
+    pub fn new() -> Result<Self> {
+        let gpio = Gpio::new()?;
 
-pub fn periodic_run() -> Result<()> {
-    let mut left_red = Gpio::new()?.get(LEFT_RED)?.into_output();
-    let mut right_red = Gpio::new()?.get(RIGHT_RED)?.into_output();
+        let left_rear_pwm_pin = Pwm::with_period(
+            Channel::Pwm0,
+            Duration::from_millis(PERIOD_MS),
+            Duration::from_micros(PULSE_MAX_US),
+            Polarity::Normal,
+            true,
+        )?;
+        let right_rear_pwm_pin = Pwm::with_period(
+            Channel::Pwm1,
+            Duration::from_millis(PERIOD_MS),
+            Duration::from_micros(PULSE_MAX_US),
+            Polarity::Normal,
+            true,
+        )?;
+        let left_rear_dir_pin = gpio.get(4)?.into_output();
+        let right_rear_dir_pin = gpio.get(5)?.into_output();
 
-    left_red.set_high();
-    right_red.set_high();
-    thread::sleep(Duration::from_millis(6000));
+        Ok(Self {
+            left_rear_pwm_pin,
+            right_rear_pwm_pin,
+            left_rear_dir_pin,
+            right_rear_dir_pin,
+        })
+    }
 
-    left_red.set_low();
-    right_red.set_low();
-    thread::sleep(Duration::from_millis(6000));
+    // Control motor direction and speed
+    // motor 0 or 1,
+    // dir   0 or 1
+    // speed 0 ~ 100
+    pub fn wheel(&mut self, speed: i32, motor: i32) {
+        let dir = if speed > 0 {
+            gpio::Level::High
+        } else {
+            gpio::Level::Low
+        };
+        let mut speed = speed.abs();
+        if speed != 0 {
+            speed = speed / 2 + 50;
+        }
 
-    Ok(())
+        match motor {
+            0 => {
+                self.left_rear_dir_pin.write(dir);
+                let _ = self.left_rear_pwm_pin.set_duty_cycle(speed as f64);
+            }
+            1 => {
+                self.right_rear_dir_pin.write(dir);
+                let _ = self.right_rear_pwm_pin.set_duty_cycle(speed as f64);
+            }
+            -1 => {
+                self.left_rear_dir_pin.write(dir);
+                let _ = self.left_rear_pwm_pin.set_duty_cycle(speed as f64);
+                self.right_rear_dir_pin.write(dir);
+                let _ = self.right_rear_pwm_pin.set_duty_cycle(speed as f64);
+            }
+            _ => panic!("MOTOR SUCKS !!"),
+        }
+    }
 }
