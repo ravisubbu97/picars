@@ -1,3 +1,5 @@
+use std::{thread, time::Duration};
+
 use anyhow::Result;
 
 // use drishti::eyes::capture;
@@ -27,6 +29,8 @@ fn main() -> Result<()> {
     for _ in 0..iterations {
         let distance = ultrasonic.read();
         println!("Distance: {} cm", distance);
+        // Sleep for 60 milliseconds (as per DATASHEET) --> FIX ME: consider ultrasonic.read() timing into account
+        thread::sleep(Duration::from_millis(60));
     }
 
     Ok(())
