@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use anyhow::Result;
 
 // use drishti::eyes::capture;
@@ -20,14 +18,16 @@ fn main() -> Result<()> {
     // // Turn off the motor
     // motor.wheel(0, -1);
     // Ok(())
+    let iterations = 5;
     let trig_pin = 27; // D2 (robot-hat)
     let echo_pin = 22; // D3 (robot-hat)
-    let timeout = Duration::from_millis(20);
 
-    let mut ultrasonic = Ultrasonic::new(trig_pin, echo_pin, timeout)?;
+    let mut ultrasonic = Ultrasonic::new(trig_pin, echo_pin)?;
 
-    let distance = ultrasonic.read(10);
-    println!("Distance: {} cm", distance);
+    for _ in 0..iterations {
+        let distance = ultrasonic.read();
+        println!("Distance: {} cm", distance);
+    }
 
     Ok(())
 }
