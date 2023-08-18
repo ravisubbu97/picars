@@ -23,6 +23,8 @@ fn main() -> Result<()> {
     let rst_pin = dust::recet_mcu().expect("MCU RESET UNSUCCESSFULL");
     println!("MCU RESET SUCCESSFULLY WITH PIN [{rst_pin}]");
 
+    let _i2c = dust::init_i2c().expect("I2C INITIALIZED SUCCESSFULLY");
+
     let iterations = 5;
     let trig_pin = 27; // D2 (robot-hat)
     let echo_pin = 22; // D3 (robot-hat)
