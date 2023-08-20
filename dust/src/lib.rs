@@ -33,6 +33,9 @@ pub fn recet_mcu() -> Result<u8> {
 
 pub fn init_i2c() -> Result<I2c> {
     let mut i2c = I2c::with_bus(BUS).expect("I2C Initialization Failure");
+    // wait after I2C init to avopid 121 IO error
+    sleep(Duration::from_secs(1));
+
     i2c.set_slave_address(SLAVE_ADDR)?;
     i2c.smbus_send_byte(0x2C)?;
     i2c.smbus_send_byte(0)?;

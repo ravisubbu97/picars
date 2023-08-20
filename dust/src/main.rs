@@ -25,13 +25,12 @@ fn main() -> Result<()> {
 
     let _i2c = dust::init_i2c().expect("I2C INITIALIZED SUCCESSFULLY");
 
-    let iterations = 5;
     let trig_pin = 27; // D2 (robot-hat)
     let echo_pin = 22; // D3 (robot-hat)
 
     let mut ultrasonic = Ultrasonic::new(trig_pin, echo_pin)?;
 
-    for _ in 0..iterations {
+    loop {
         let distance = ultrasonic.read();
         println!("Distance: {} cm", distance);
         // Sleep for 60 milliseconds (as per DATASHEET) --> FIX ME: consider ultrasonic.read() timing into account
