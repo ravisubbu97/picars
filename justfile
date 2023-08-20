@@ -1,6 +1,6 @@
 # Build variables
 BUILD_NAME := "dust.bin"
-TARGET_NAME := "armv7-unknown-linux-gnueabihf"
+TARGET_NAME := "aarch64-unknown-linux-gnu"
 TARGET_DIR := "target-" + TARGET_NAME
 
 # List commands
