@@ -21,21 +21,21 @@ impl Motor {
         let gpio = Gpio::new()?;
 
         let left_rear_pwm_pin = Pwm::with_period(
-            Channel::Pwm0,
+            Channel::Pwm0, // P13 (robot-hat)
             Duration::from_millis(PERIOD_MS),
             Duration::from_micros(PULSE_MAX_US),
             Polarity::Normal,
             true,
         )?;
         let right_rear_pwm_pin = Pwm::with_period(
-            Channel::Pwm1,
+            Channel::Pwm1, // P12 (robot-hat)
             Duration::from_millis(PERIOD_MS),
             Duration::from_micros(PULSE_MAX_US),
             Polarity::Normal,
             true,
         )?;
-        let left_rear_dir_pin = gpio.get(4)?.into_output();
-        let right_rear_dir_pin = gpio.get(5)?.into_output();
+        let left_rear_dir_pin = gpio.get(23)?.into_output(); // D4 (robot-hat)
+        let right_rear_dir_pin = gpio.get(24)?.into_output(); // D5 (robot-hat)
 
         Ok(Self {
             left_rear_pwm_pin,
