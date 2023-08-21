@@ -87,27 +87,30 @@ impl PWM {
 
     pub fn prescaler(&mut self, prescaler: u8) -> Result<()> {
         self._prescaler = prescaler - 1;
-        let reg = (REG_PSC + self.timer) as u16;
-        self.bus.set_slave_address(reg)?;
-        self.bus.smbus_send_byte(self._prescaler)?;
+        let reg = REG_PSC + self.timer;
+        self.bus
+            .smbus_write_word(reg, self._prescaler as u16)
+            .context("PWM PRESCALER SEND FAILED")?;
 
         Ok(())
     }
 
     pub fn period(&mut self, arr: u8) -> Result<()> {
         let timer = arr - 1;
-        let reg = (REG_ARR + timer) as u16;
-        self.bus.set_slave_address(reg)?;
-        self.bus.smbus_send_byte(timer)?;
+        let reg = REG_ARR + timer;
+        self.bus
+            .smbus_write_word(reg, timer as u16)
+            .context("PWM PERIOD SEND FAILED")?;
 
         Ok(())
     }
 
     pub fn pulse_width(&mut self, pulse_width: u8) -> Result<()> {
         self._pulse_width = pulse_width;
-        let reg = (REG_CHN + self.channel) as u16;
-        self.bus.set_slave_address(reg)?;
-        self.bus.smbus_send_byte(self._pulse_width)?;
+        let reg = REG_CHN + self.channel;
+        self.bus
+            .smbus_write_word(reg, self._pulse_width as u16)
+            .context("PWM PULSE WIDTH SEND FAILED")?;
 
         Ok(())
     }
