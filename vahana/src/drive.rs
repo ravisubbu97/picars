@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::{thread::sleep, time::Duration};
 
 use rppal::{
@@ -40,7 +40,7 @@ pub struct PWM {
 impl PWM {
     pub fn new(channel: u8) -> Result<Self> {
         let freq = 50;
-        let i2c = init_i2c()?;
+        let i2c = init_i2c().context("PWM I2C INIT FAILED")?;
         let mut pwm = Self {
             channel,
             timer: channel / 4_u8,
