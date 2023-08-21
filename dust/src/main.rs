@@ -18,9 +18,9 @@ fn main() -> Result<()> {
     println!("motors initialized successfully");
 
     // Example usage : expectation is both motors will run in forward direction at half speed for 5 secs
-    motor.wheel(50.0, -1);
-    println!(" both motors will run in forward direction");
-    thread::sleep(Duration::from_secs(5));
+    for _ in 0..30 {
+        motor.wheel(50.0, -1);
+    }
 
     let iterations = 5;
     let trig_pin = 27; // D2 (robot-hat)
