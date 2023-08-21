@@ -51,7 +51,7 @@ impl PWM {
             _pulse_width_percent: 0.0,
         };
 
-        pwm.freq(50)?;
+        pwm.freq(50).context("PWM FREQ INIT FAILED")?;
 
         Ok(pwm)
     }
@@ -78,8 +78,9 @@ impl PWM {
             .unwrap();
         let (psc, arr) = result_ap[i];
 
-        self.prescaler(psc as u8)?;
-        self.period(arr)?;
+        self.prescaler(psc as u8)
+            .context("PWM PRESCALER INIT FAILED")?;
+        self.period(arr).context("PWM PERIOD INIT FAILED")?;
 
         Ok(())
     }
@@ -129,12 +130,12 @@ pub struct Motor {
 
 impl Motor {
     pub fn new() -> Result<Self> {
-        let gpio = Gpio::new()?;
+        let gpio = Gpio::new().context("Gpio init failed (drive)")?;
 
-        let left_rear_pwm_pin = PWM::new(13)?; // P13 (robot-hat)
-        let right_rear_pwm_pin = PWM::new(12)?; // P12 (robot-hat)
-        let left_rear_dir_pin = gpio.get(23)?.into_output(); // D4 (robot-hat)
-        let right_rear_dir_pin = gpio.get(24)?.into_output(); // D5 (robot-hat)
+        let left_rear_pwm_pin = PWM::new(13).context("PWM 13 init failed")?; // P13 (robot-hat)
+        let right_rear_pwm_pin = PWM::new(12).context("PWM 12 init failed")?; // P12 (robot-hat)
+        let left_rear_dir_pin = gpio.get(23).context("Gpio 23 init failed")?.into_output(); // D4 (robot-hat)
+        let right_rear_dir_pin = gpio.get(24).context("Gpio 24 init failed")?.into_output(); // D5 (robot-hat)
 
         Ok(Self {
             left_rear_pwm_pin,
