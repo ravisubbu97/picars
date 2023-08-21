@@ -3,10 +3,6 @@ use std::time::Duration;
 
 use anyhow::Result;
 use rppal::gpio::Gpio;
-use rppal::i2c::I2c;
-
-const BUS: u8 = 1;
-const SLAVE_ADDR: u16 = 0x14;
 const BOARD_TYPE: u8 = 12;
 
 fn check_board_type() -> Result<bool> {
@@ -31,15 +27,34 @@ pub fn recet_mcu() -> Result<u8> {
     Ok(rst_pin.pin())
 }
 
-pub fn init_i2c() -> Result<I2c> {
-    let mut i2c = I2c::with_bus(BUS).expect("I2C Initialization Failure");
-    // wait after I2C init to avopid 121 IO error
-    sleep(Duration::from_secs(1));
-
-    i2c.set_slave_address(SLAVE_ADDR)?;
-    i2c.smbus_send_byte(0x2C)?;
-    i2c.smbus_send_byte(0)?;
-    i2c.smbus_send_byte(0)?;
-
-    Ok(i2c)
-}
+/*
+===============================================
+PIN REFERENCES FROM ROBOT-HAT (BCM NUMBERS)
+===============================================
+    "D0":  17
+    "D1":   4
+    "D2":  27
+    "D3":  22
+    "D4":  23
+    "D5":  24
+    "D6":  25
+    "D7":   4
+    "D8":   5
+    "D9":   6
+    "D10": 12
+    "D11": 13
+    "D12": 19
+    "D13": 16
+    "D14": 26
+    "D15": 20
+    "D16": 21
+    "SW":  25
+    "USER": 25
+    "LED": 26
+    "BOARD_TYPE": 12
+    "RST": 16
+    "BLEINT": 13
+    "BLERST": 20
+    "MCURST":  5
+===============================================
+*/
