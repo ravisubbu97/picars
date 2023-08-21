@@ -175,7 +175,7 @@ impl Motor {
             -1 => {
                 self.left_rear_dir_pin.write(dir);
                 let _ = self.left_rear_pwm_pin.pulse_width_percent(speed);
-                self.right_rear_dir_pin.write(dir);
+                self.right_rear_dir_pin.write(!dir);
                 let _ = self.right_rear_pwm_pin.pulse_width_percent(speed);
             }
             _ => panic!("MOTOR SUCKS !!"),
