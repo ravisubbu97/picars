@@ -1,3 +1,4 @@
+use std::thread::sleep;
 use std::{thread, time::Duration};
 
 use anyhow::Result;
@@ -17,11 +18,26 @@ fn main() -> Result<()> {
     let mut motor = Motor::new().expect("Failed to initialize motor.");
     println!("motors initialized successfully");
 
-    // Example usage : expectation is both motors will run in forward direction at half speed for 5 secs
-    motor.wheel(50.0, -1);
-    thread::sleep(Duration::from_secs(30));
+    let iterations = 10;
 
-    let iterations = 5;
+    println!("MOTORS STARTED.......................................");
+    for _ in 0..iterations {
+        for i in (0..4095).step_by(10) {
+            motor.left_rear_pwm_pin.pulse_width(i)?;
+            println!("{}", i);
+            sleep(Duration::from_secs_f32(1.0 / 4095.0));
+        }
+        sleep(Duration::from_secs(1));
+
+        for i in (0..4095).rev().step_by(10) {
+            motor.left_rear_pwm_pin.pulse_width(i)?;
+            println!("{}", i);
+            sleep(Duration::from_secs_f32(1.0 / 4095.0));
+        }
+        sleep(Duration::from_secs(1));
+    }
+    println!("MOTORS STOPPED.......................................");
+
     let trig_pin = 27; // D2 (robot-hat)
     let echo_pin = 22; // D3 (robot-hat)
 

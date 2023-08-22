@@ -99,6 +99,7 @@ impl PWM {
         Ok(())
     }
 
+    // This code is buggy, FIX ME !!
     pub fn pulse_width_percent(&mut self, pulse_width_percent: f32) -> Result<()> {
         let temp = pulse_width_percent / 100.0;
         let timer = self.channel / 4_u8;
@@ -110,8 +111,8 @@ impl PWM {
 }
 
 pub struct Motor {
-    left_rear_pwm_pin: PWM,
-    right_rear_pwm_pin: PWM,
+    pub left_rear_pwm_pin: PWM,
+    pub right_rear_pwm_pin: PWM,
     left_rear_dir_pin: OutputPin,
     right_rear_dir_pin: OutputPin,
 }
