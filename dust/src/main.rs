@@ -19,10 +19,13 @@ fn main() -> Result<()> {
     let mut motor = Motor::new().expect("Failed to initialize motor.");
     println!("motors initialized successfully");
 
-    let iterations = 10;
+    motor.left_rear_pwm_pin.period(1000)?;
+    motor.right_rear_pwm_pin.period(1000)?;
+    motor.left_rear_pwm_pin.prescaler(10)?;
+    motor.right_rear_pwm_pin.prescaler(10)?;
 
     println!("MOTORS STARTED.......................................");
-    for iter in 0..iterations {
+    for iter in 0..10 {
         for i in (0..4095).step_by(10) {
             motor.left_rear_dir_pin.write(Level::High);
             let _ = motor.left_rear_pwm_pin.pulse_width(i);
@@ -47,7 +50,7 @@ fn main() -> Result<()> {
 
     let mut ultrasonic = Ultrasonic::new(trig_pin, echo_pin)?;
 
-    for _ in 0..iterations {
+    for _ in 0..5 {
         let distance = ultrasonic.read();
         println!("Distance: {} cm", distance);
         // Sleep for 60 milliseconds (as per DATASHEET) --> FIX ME: consider ultrasonic.read() timing into account
