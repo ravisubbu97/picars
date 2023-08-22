@@ -30,16 +30,16 @@ fn main() -> Result<()> {
             let _ = motor.right_rear_pwm_pin.pulse_width(i);
             sleep(Duration::from_secs_f32(1.0 / 4095.0));
         }
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(2));
 
         for i in (0..4095).rev().step_by(10) {
-            motor.left_rear_dir_pin.write(Level::High);
+            motor.left_rear_dir_pin.write(Level::Low);
             let _ = motor.left_rear_pwm_pin.pulse_width(i);
-            motor.right_rear_dir_pin.write(Level::Low);
+            motor.right_rear_dir_pin.write(Level::High);
             let _ = motor.right_rear_pwm_pin.pulse_width(i);
             sleep(Duration::from_secs_f32(1.0 / 4095.0));
         }
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(2));
     }
     println!("MOTORS STOPPED.......................................");
 
