@@ -22,13 +22,12 @@ fn main() -> Result<()> {
     let iterations = 10;
 
     println!("MOTORS STARTED.......................................");
-    for _ in 0..iterations {
+    for iter in 0..iterations {
         for i in (0..4095).step_by(10) {
             motor.left_rear_dir_pin.write(Level::High);
             let _ = motor.left_rear_pwm_pin.pulse_width(i);
             motor.right_rear_dir_pin.write(Level::Low);
             let _ = motor.right_rear_pwm_pin.pulse_width(i);
-            sleep(Duration::from_secs_f32(1.0 / 4095.0));
         }
         sleep(Duration::from_secs(2));
 
@@ -37,9 +36,9 @@ fn main() -> Result<()> {
             let _ = motor.left_rear_pwm_pin.pulse_width(i);
             motor.right_rear_dir_pin.write(Level::High);
             let _ = motor.right_rear_pwm_pin.pulse_width(i);
-            sleep(Duration::from_secs_f32(1.0 / 4095.0));
         }
         sleep(Duration::from_secs(2));
+        println!("ITERATION: {iter}");
     }
     println!("MOTORS STOPPED.......................................");
 
