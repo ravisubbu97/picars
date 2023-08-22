@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::{thread::sleep, time::Duration};
 
 use rppal::{
-    gpio::{self, Gpio, OutputPin},
+    gpio::{Gpio, Level, OutputPin},
     i2c::I2c,
 };
 
@@ -29,27 +29,13 @@ pub fn init_i2c() -> Result<I2c> {
 
 pub struct PWM {
     channel: u8,
-    timer: u8,
     bus: I2c,
-    _pulse_width: u8,
-    _freq: u16,
-    _prescaler: u8,
-    _pulse_width_percent: f32,
 }
 
 impl PWM {
     pub fn new(channel: u8) -> Result<Self> {
-        let freq = 50;
         let i2c = init_i2c().context("PWM I2C INIT FAILED")?;
-        let mut pwm = Self {
-            channel,
-            timer: channel / 4_u8,
-            bus: i2c,
-            _pulse_width: 0,
-            _freq: freq,
-            _prescaler: 0,
-            _pulse_width_percent: 0.0,
-        };
+        let mut pwm = Self { channel, bus: i2c };
 
         pwm.freq(50).context("PWM FREQ INIT FAILED")?;
 
@@ -57,59 +43,57 @@ impl PWM {
     }
 
     pub fn freq(&mut self, freq: u16) -> Result<()> {
-        self._freq = freq;
-        let mut result_ap = vec![]; // Create a vector for prescaler
-        let mut result_acy = vec![]; // Create a vector for accuracy
+        let mut result_psc = Vec::with_capacity(12); // Create a vector for prescaler
+        let mut result_per = Vec::with_capacity(12); // Create a vector for period
+        let mut result_acy = Vec::with_capacity(12); // Create a vector for accuracy
 
-        let st = (CLOCK as f32 / self._freq as f32).sqrt() as u32 - 5;
-        let st = st.max(1); // Prevent negative value
+        let st = ((CLOCK as f32 / freq as f32).sqrt() as u16) - 5;
 
         for psc in st..st + 10 {
-            let arr = (CLOCK / (self._freq * psc as u16) as u32) as u8;
-            result_ap.push((psc, arr));
-            result_acy.push(f32::abs(
-                self._freq as f32 - CLOCK as f32 / (psc * arr as u32) as f32,
-            ));
+            let per = (CLOCK / (freq * psc) as u32) as u16;
+            result_psc.push(psc);
+            result_per.push(per);
+            result_acy.push(f32::abs(freq as f32 - CLOCK as f32 / (psc * per) as f32));
         }
 
         let i = result_acy
             .iter()
             .position(|&x| x == result_acy.iter().cloned().fold(f32::INFINITY, f32::min))
             .unwrap();
-        let (psc, arr) = result_ap[i];
+        let psc = result_psc[i];
+        let per = result_per[i];
 
-        self.prescaler(psc as u8)
-            .context("PWM PRESCALER INIT FAILED")?;
-        self.period(arr).context("PWM PERIOD INIT FAILED")?;
+        self.prescaler(psc).context("PWM PRESCALER INIT FAILED")?;
+        self.period(per).context("PWM PERIOD INIT FAILED")?;
 
         Ok(())
     }
 
-    pub fn prescaler(&mut self, prescaler: u8) -> Result<()> {
-        self._prescaler = prescaler - 1;
-        let reg = REG_PSC + self.timer;
+    pub fn prescaler(&mut self, prescaler: u16) -> Result<()> {
+        let prescaler = prescaler - 1;
+        let timer = self.channel / 4_u8;
+        let reg = REG_PSC + timer;
         self.bus
-            .smbus_write_word(reg, self._prescaler as u16)
+            .smbus_write_word(reg, prescaler)
             .context("PWM PRESCALER SEND FAILED")?;
 
         Ok(())
     }
 
-    pub fn period(&mut self, arr: u8) -> Result<()> {
+    pub fn period(&mut self, arr: u16) -> Result<()> {
         let timer = arr - 1;
-        let reg = REG_ARR + timer;
+        let reg = REG_ARR + timer as u8;
         self.bus
-            .smbus_write_word(reg, timer as u16)
+            .smbus_write_word(reg, timer)
             .context("PWM PERIOD SEND FAILED")?;
 
         Ok(())
     }
 
-    pub fn pulse_width(&mut self, pulse_width: u8) -> Result<()> {
-        self._pulse_width = pulse_width;
+    pub fn pulse_width(&mut self, pulse_width: u16) -> Result<()> {
         let reg = REG_CHN + self.channel;
         self.bus
-            .smbus_write_word(reg, self._pulse_width as u16)
+            .smbus_write_word(reg, pulse_width)
             .context("PWM PULSE WIDTH SEND FAILED")?;
 
         Ok(())
@@ -117,7 +101,8 @@ impl PWM {
 
     pub fn pulse_width_percent(&mut self, pulse_width_percent: f32) -> Result<()> {
         let temp = pulse_width_percent / 100.0;
-        let pulse_width = (temp * self.timer as f32) as u8;
+        let timer = self.channel / 4_u8;
+        let pulse_width = (temp * timer as f32) as u16;
         self.pulse_width(pulse_width)?;
 
         Ok(())
@@ -153,11 +138,7 @@ impl Motor {
     // dir   0 or 1
     // speed 0 ~ 100
     pub fn wheel(&mut self, speed: f32, motor: i32) {
-        let dir = if speed > 0.0 {
-            gpio::Level::High
-        } else {
-            gpio::Level::Low
-        };
+        let dir = if speed > 0.0 { Level::High } else { Level::Low };
         let mut speed = speed.abs();
         if speed != 0.0 {
             speed = speed / 2.0 + 50.0;
