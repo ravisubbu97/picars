@@ -113,8 +113,8 @@ impl PWM {
 pub struct Motor {
     pub left_rear_pwm_pin: PWM,
     pub right_rear_pwm_pin: PWM,
-    left_rear_dir_pin: OutputPin,
-    right_rear_dir_pin: OutputPin,
+    pub left_rear_dir_pin: OutputPin,
+    pub right_rear_dir_pin: OutputPin,
 }
 
 impl Motor {

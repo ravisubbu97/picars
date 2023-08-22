@@ -2,6 +2,7 @@ use std::thread::sleep;
 use std::{thread, time::Duration};
 
 use anyhow::Result;
+use rppal::gpio::Level;
 
 // use drishti::eyes::capture;
 use drishti::depth::Ultrasonic;
@@ -23,15 +24,19 @@ fn main() -> Result<()> {
     println!("MOTORS STARTED.......................................");
     for _ in 0..iterations {
         for i in (0..4095).step_by(10) {
-            motor.left_rear_pwm_pin.pulse_width(i)?;
-            println!("{}", i);
+            motor.left_rear_dir_pin.write(Level::High);
+            let _ = motor.left_rear_pwm_pin.pulse_width(i);
+            motor.right_rear_dir_pin.write(Level::Low);
+            let _ = motor.right_rear_pwm_pin.pulse_width(i);
             sleep(Duration::from_secs_f32(1.0 / 4095.0));
         }
         sleep(Duration::from_secs(1));
 
         for i in (0..4095).rev().step_by(10) {
-            motor.left_rear_pwm_pin.pulse_width(i)?;
-            println!("{}", i);
+            motor.left_rear_dir_pin.write(Level::High);
+            let _ = motor.left_rear_pwm_pin.pulse_width(i);
+            motor.right_rear_dir_pin.write(Level::Low);
+            let _ = motor.right_rear_pwm_pin.pulse_width(i);
             sleep(Duration::from_secs_f32(1.0 / 4095.0));
         }
         sleep(Duration::from_secs(1));
