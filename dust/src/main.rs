@@ -14,7 +14,7 @@ fn main() -> Result<()> {
     // capture("1000", image_path);
     let rst_pin = dust::recet_mcu().expect("MCU RESET UNSUCCESSFULL [BEGIN]");
     println!("MCU RESET SUCCESSFULLY WITH PIN [{rst_pin}] [BEGIN]");
-    let _i2c = init_i2c().expect("I2C INITIALIZED SUCCESSFULLY");
+    let _i2c = init_i2c().expect("I2C INITIALIZATION FAILED");
 
     let mut motor = Motor::new().expect("Failed to initialize motor.");
     println!("motors initialized successfully");
