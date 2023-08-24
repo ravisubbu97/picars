@@ -6,16 +6,15 @@ use rppal::{
     i2c::I2c,
 };
 
-const BUS: u8 = 1;
-const REG_CHN: u8 = 0x20;
-// const REG_FRE: u8 = 0x30;
-const REG_PSC: u8 = 0x40;
-const REG_ARR: u8 = 0x44;
+const I2C_BUS: u8 = 1;
+const REG_PW: u8 = 0x20; // REG_CHN
+const REG_PSC: u8 = 0x40; // REG_PSC
+const REG_PER: u8 = 0x44; // REG_ARR
 const SLAVE_ADDR: u16 = 0x14;
 const CLOCK: u32 = 72_000_000;
 
 pub fn init_i2c() -> Result<I2c> {
-    let mut i2c = I2c::with_bus(BUS)?;
+    let mut i2c = I2c::with_bus(I2C_BUS)?;
     // wait after I2C init to avopid 121 IO error
     sleep(Duration::from_secs(1));
 
@@ -109,30 +108,29 @@ impl PWM {
     }
 
     pub fn prescaler(&mut self, prescaler: u16) -> Result<()> {
-        let prescaler = prescaler - 1;
         let timer = self.channel / 4_u8;
         let reg = REG_PSC + timer;
         self.bus
-            .smbus_write_word(reg, prescaler)
+            .smbus_write_word(reg, prescaler - 1)
             .context("PWM PRESCALER SEND FAILED")?;
 
         Ok(())
     }
 
-    pub fn period(&mut self, arr: u16) -> Result<()> {
-        let timer = arr - 1;
-        let reg = REG_ARR + timer as u8;
+    pub fn period(&mut self, per: u16) -> Result<()> {
+        let timer = self.channel / 4_u8;
+        let reg = REG_PER + timer;
         self.bus
-            .smbus_write_word(reg, timer)
+            .smbus_write_word(reg, per - 1)
             .context("PWM PERIOD SEND FAILED")?;
 
         Ok(())
     }
 
-    pub fn pulse_width(&mut self, pulse_width: u16) -> Result<()> {
-        let reg = REG_CHN + self.channel;
+    pub fn pulse_width(&mut self, pw: u16) -> Result<()> {
+        let reg = REG_PW + self.channel;
         self.bus
-            .smbus_write_word(reg, pulse_width)
+            .smbus_write_word(reg, pw)
             .context("PWM PULSE WIDTH SEND FAILED")?;
 
         Ok(())
