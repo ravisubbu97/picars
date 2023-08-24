@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use std::{thread::sleep, time::Duration};
+use std::{process::Command, thread::sleep, time::Duration};
 
 use rppal::{
     gpio::{Gpio, Level, OutputPin},
@@ -25,6 +25,45 @@ pub fn init_i2c() -> Result<I2c> {
     i2c.smbus_send_byte(0)?;
 
     Ok(i2c)
+}
+
+fn run_command(cmd: &str) -> Result<(i32, String), Box<dyn std::error::Error>> {
+    let output = Command::new("sh") // You can use "sh" to execute shell commands
+        .arg("-c") // Use the -c flag to run the provided command
+        .arg(cmd) // The command you want to run
+        .output()?;
+
+    let status = output.status.code().unwrap_or(-1);
+    let result = String::from_utf8_lossy(&output.stdout).to_string();
+
+    Ok((status, result))
+}
+
+pub fn scan_i2c(i2c: I2c) -> Vec<u16> {
+    let cmd = format!("i2cdetect -y {}", i2c.bus());
+    let output = match run_command(&cmd) {
+        Ok((status, result)) => {
+            println!("Exit Status: {}", status);
+            println!("Command Output:\n{}", result);
+            result
+        }
+        Err(err) => err.to_string(),
+    };
+
+    let mut addresses = vec![];
+
+    for line in output.lines().skip(1) {
+        let tmp_addresses = line.split(':').nth(1).unwrap_or("").trim();
+        for address in tmp_addresses.split_whitespace() {
+            if address != "--" {
+                if let Ok(address) = u16::from_str_radix(address, 16) {
+                    addresses.push(address);
+                }
+            }
+        }
+    }
+
+    addresses
 }
 
 pub struct PWM {
