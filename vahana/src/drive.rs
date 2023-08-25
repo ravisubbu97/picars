@@ -1,203 +1,123 @@
 use anyhow::{Context, Result};
-use std::{process::Command, thread::sleep, time::Duration};
+use rppal::gpio::{Gpio, Level, OutputPin};
 
-use rppal::{
-    gpio::{Gpio, Level, OutputPin},
-    i2c::I2c,
-};
+use crate::{mapping, PWM};
 
-const I2C_BUS: u8 = 1;
-const REG_PW: u8 = 0x20; // REG_CHN
-const REG_PSC: u8 = 0x40; // REG_PSC
-const REG_PER: u8 = 0x44; // REG_ARR
-const SLAVE_ADDR: u16 = 0x14;
+// Servo and Motor Constants
+const PERIOD: u16 = 4095;
+const PRESCALER: u16 = 10;
+const FREQ: u16 = 50;
+const MAX_PW: u16 = 2500;
+const MIN_PW: u16 = 500;
 const CLOCK: u32 = 72_000_000;
 
-pub fn init_i2c() -> Result<I2c> {
-    let mut i2c = I2c::with_bus(I2C_BUS)?;
-    // wait after I2C init to avopid 121 IO error
-    sleep(Duration::from_secs(1));
-
-    i2c.set_slave_address(SLAVE_ADDR)?;
-    i2c.smbus_send_byte(0x2C)?;
-    i2c.smbus_send_byte(0)?;
-    i2c.smbus_send_byte(0)?;
-
-    Ok(i2c)
-}
-
-fn run_command(cmd: &str) -> Result<(i32, String), Box<dyn std::error::Error>> {
-    let output = Command::new("sh") // You can use "sh" to execute shell commands
-        .arg("-c") // Use the -c flag to run the provided command
-        .arg(cmd) // The command you want to run
-        .output()?;
-
-    let status = output.status.code().unwrap_or(-1);
-    let result = String::from_utf8_lossy(&output.stdout).to_string();
-
-    Ok((status, result))
-}
-
-pub fn scan_i2c(i2c: I2c) -> Vec<u16> {
-    let cmd = format!("i2cdetect -y {}", i2c.bus());
-    let output = match run_command(&cmd) {
-        Ok((status, result)) => {
-            println!("Exit Status: {}", status);
-            println!("Command Output:\n{}", result);
-            result
-        }
-        Err(err) => err.to_string(),
-    };
-
-    let mut addresses = vec![];
-
-    for line in output.lines().skip(1) {
-        let tmp_addresses = line.split(':').nth(1).unwrap_or("").trim();
-        for address in tmp_addresses.split_whitespace() {
-            if address != "--" {
-                if let Ok(address) = u16::from_str_radix(address, 16) {
-                    addresses.push(address);
-                }
-            }
-        }
-    }
-
-    addresses
-}
-
-pub struct PWM {
-    channel: u8,
-    bus: I2c,
-}
-
-impl PWM {
-    pub fn new(channel: u8) -> Result<Self> {
-        let i2c = init_i2c().context("PWM I2C INIT FAILED")?;
-        let mut pwm = Self { channel, bus: i2c };
-
-        pwm.freq(50).context("PWM FREQ INIT FAILED")?;
-
-        Ok(pwm)
-    }
-
-    pub fn freq(&mut self, freq: u16) -> Result<()> {
-        let mut result_psc = Vec::with_capacity(12); // Create a vector for prescaler
-        let mut result_per = Vec::with_capacity(12); // Create a vector for period
-        let mut result_acy = Vec::with_capacity(12); // Create a vector for accuracy
-
-        let st = ((CLOCK as f32 / freq as f32).sqrt() as u16) - 5;
-
-        for psc in st..st + 10 {
-            let per = (CLOCK / (freq * psc) as u32) as u16;
-            result_psc.push(psc);
-            result_per.push(per);
-            result_acy.push(f32::abs(freq as f32 - CLOCK as f32 / (psc * per) as f32));
-        }
-
-        let i = result_acy
-            .iter()
-            .position(|&x| x == result_acy.iter().cloned().fold(f32::INFINITY, f32::min))
-            .unwrap();
-        let psc = result_psc[i];
-        let per = result_per[i];
-
-        self.prescaler(psc).context("PWM PRESCALER INIT FAILED")?;
-        self.period(per).context("PWM PERIOD INIT FAILED")?;
-
-        Ok(())
-    }
-
-    pub fn prescaler(&mut self, prescaler: u16) -> Result<()> {
-        let timer = self.channel / 4_u8;
-        let reg = REG_PSC + timer;
-        self.bus
-            .smbus_write_word(reg, prescaler - 1)
-            .context("PWM PRESCALER SEND FAILED")?;
-
-        Ok(())
-    }
-
-    pub fn period(&mut self, per: u16) -> Result<()> {
-        let timer = self.channel / 4_u8;
-        let reg = REG_PER + timer;
-        self.bus
-            .smbus_write_word(reg, per - 1)
-            .context("PWM PERIOD SEND FAILED")?;
-
-        Ok(())
-    }
-
-    pub fn pulse_width(&mut self, pw: u16) -> Result<()> {
-        let reg = REG_PW + self.channel;
-        self.bus
-            .smbus_write_word(reg, pw)
-            .context("PWM PULSE WIDTH SEND FAILED")?;
-
-        Ok(())
-    }
-
-    // This code is buggy, FIX ME !!
-    pub fn pulse_width_percent(&mut self, pulse_width_percent: f32) -> Result<()> {
-        let temp = pulse_width_percent / 100.0;
-        let timer = self.channel / 4_u8;
-        let pulse_width = (temp * timer as f32) as u16;
-        self.pulse_width(pulse_width)?;
-
-        Ok(())
-    }
-}
-
 pub struct Motor {
-    pub left_rear_pwm_pin: PWM,
-    pub right_rear_pwm_pin: PWM,
-    pub left_rear_dir_pin: OutputPin,
-    pub right_rear_dir_pin: OutputPin,
+    pwm: PWM,
+    dir: OutputPin,
+    pub speed: f32,
 }
 
 impl Motor {
-    pub fn new() -> Result<Self> {
+    pub fn new(pwm_pin: u8, dir_pin: u8) -> Result<Self> {
         let gpio = Gpio::new().context("Gpio init failed (drive)")?;
 
-        let left_rear_pwm_pin = PWM::new(13).context("PWM 13 init failed")?; // P13 (robot-hat)
-        let right_rear_pwm_pin = PWM::new(12).context("PWM 12 init failed")?; // P12 (robot-hat)
-        let left_rear_dir_pin = gpio.get(23).context("Gpio 23 init failed")?.into_output(); // D4 (robot-hat)
-        let right_rear_dir_pin = gpio.get(24).context("Gpio 24 init failed")?.into_output(); // D5 (robot-hat)
+        let mut pwm = PWM::new(pwm_pin).context("PWM init failed")?;
+        let dir = gpio.get(dir_pin).context("Gpio init failed")?.into_output();
+        let speed = 0.0;
+
+        pwm.period(PERIOD)?;
+        pwm.prescaler(PRESCALER)?;
+        Ok(Self { pwm, dir, speed })
+    }
+
+    pub fn speed(&mut self, speed: f32) -> Result<()> {
+        let dir: Level = if speed > 0.0 { Level::High } else { Level::Low };
+        let speed: f32 = speed.abs();
+
+        self.pwm.pulse_width_percent(speed)?;
+        self.dir.write(dir);
+
+        Ok(())
+    }
+}
+
+pub struct Motors {
+    left_motor: Motor,
+    right_motor: Motor,
+}
+
+impl Motors {
+    pub fn new() -> Result<Self> {
+        let left_motor_pwm_pin: u8 = 13; // P13 (robot-hat)
+        let left_motor_dir_pin: u8 = 23; // D4 (robot-hat)
+        let right_motor_pwm_pin: u8 = 12; // P12 (robot-hat)
+        let right_motor_dir_pin: u8 = 24; // D5 (robot-hat)
+
+        let left_motor =
+            Motor::new(left_motor_pwm_pin, left_motor_dir_pin).context("LEFT MOTOR INIT FAILED")?;
+        let right_motor = Motor::new(right_motor_pwm_pin, right_motor_dir_pin)
+            .context("RIGHT MOTOR INIT FAILED")?;
 
         Ok(Self {
-            left_rear_pwm_pin,
-            right_rear_pwm_pin,
-            left_rear_dir_pin,
-            right_rear_dir_pin,
+            left_motor,
+            right_motor,
         })
     }
 
-    // Control motor direction and speed
-    // motor 0 or 1,
-    // dir   0 or 1
-    // speed 0 ~ 100
-    pub fn wheel(&mut self, speed: f32, motor: i32) {
-        let dir = if speed > 0.0 { Level::High } else { Level::Low };
-        let mut speed = speed.abs();
-        if speed != 0.0 {
-            speed = speed / 2.0 + 50.0;
-        }
+    pub fn stop(&mut self) {
+        let _ = self.left_motor.speed(0.0);
+        let _ = self.right_motor.speed(0.0);
+    }
 
-        match motor {
-            0 => {
-                self.left_rear_dir_pin.write(dir);
-                let _ = self.left_rear_pwm_pin.pulse_width_percent(speed);
-            }
-            1 => {
-                self.right_rear_dir_pin.write(dir);
-                let _ = self.right_rear_pwm_pin.pulse_width_percent(speed);
-            }
-            -1 => {
-                self.left_rear_dir_pin.write(dir);
-                let _ = self.left_rear_pwm_pin.pulse_width_percent(speed);
-                self.right_rear_dir_pin.write(!dir);
-                let _ = self.right_rear_pwm_pin.pulse_width_percent(speed);
-            }
-            _ => panic!("MOTOR SUCKS !!"),
-        }
+    pub fn speed(&mut self, left_speed: f32, right_speed: f32) {
+        let _ = self.left_motor.speed(left_speed);
+        let _ = self.right_motor.speed(right_speed);
+    }
+
+    pub fn forward(&mut self, speed: f32) {
+        self.speed(speed, speed);
+    }
+
+    pub fn backward(&mut self, speed: f32) {
+        self.speed(-speed, -speed);
+    }
+
+    pub fn turn_left(&mut self, speed: f32) {
+        self.speed(-speed, speed);
+    }
+
+    pub fn turn_right(&mut self, speed: f32) {
+        self.speed(speed, -speed);
+    }
+}
+
+pub struct Servo {
+    pwm: PWM,
+}
+
+impl Servo {
+    pub fn new(pwm_pin: u8) -> Result<Self> {
+        let mut pwm = PWM::new(pwm_pin).context("PWM init failed")?;
+        let prescaler: u16 = (CLOCK / FREQ as u32 / PERIOD as u32) as u16;
+        pwm.period(PERIOD)?;
+        pwm.prescaler(prescaler)?;
+        Ok(Self { pwm })
+    }
+
+    pub fn pulse_width_time(&mut self, pw_time: f32) -> Result<()> {
+        let pw_time = pw_time.clamp(MIN_PW.into(), MAX_PW.into());
+        let pwr = pw_time / 20000.0;
+        let value = (pwr * PERIOD as f32) as u16;
+        self.pwm.pulse_width(value)?;
+
+        Ok(())
+    }
+
+    pub fn angle(&mut self, angle: f32) -> Result<()> {
+        let angle = angle.clamp(-90.0, 90.0);
+        let pw_time = mapping(angle, -90.0, 90.0, MIN_PW.into(), MAX_PW.into());
+        let _ = self.pulse_width_time(pw_time);
+
+        Ok(())
     }
 }
