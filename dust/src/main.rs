@@ -1,9 +1,12 @@
 use std::{thread, time::Duration};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use drishti::depth::Ultrasonic;
-use vahana::init_i2c;
+use vahana::{
+    drive::{Motors, Servo},
+    init_i2c,
+};
 
 fn main() -> Result<()> {
     // let image_path = "images/image.jpg";
@@ -11,39 +14,25 @@ fn main() -> Result<()> {
     let rst_pin = dust::recet_mcu().expect("MCU RESET UNSUCCESSFULL [BEGIN]");
     println!("MCU RESET SUCCESSFULLY WITH PIN [{rst_pin}] [BEGIN]");
     let _i2c = init_i2c().expect("I2C INITIALIZATION FAILED");
-    /*
-    let mut motor = Motor::new().expect("Failed to initialize motor.");
-    println!("motors initialized successfully");
 
-        motor.left_rear_pwm_pin.period(1000)?;
-        motor.right_rear_pwm_pin.period(1000)?;
-        motor.left_rear_pwm_pin.prescaler(10)?;
-        motor.right_rear_pwm_pin.prescaler(10)?;
+    // servo
+    let mut camera_servo_pin1 = Servo::new(0).context("camera_servo_pin1 init failed")?; // P0
+    let mut camera_servo_pin2 = Servo::new(1).context("camera_servo_pin2 init failed")?; // P1
+    let mut dir_servo_pin = Servo::new(2).context("dir_servo_pin init failed")?; // P2
 
-        println!("MOTORS STARTED.......................................");
+    camera_servo_pin1.angle(20.0)?;
+    camera_servo_pin2.angle(-20.0)?;
+    dir_servo_pin.angle(10.0)?;
 
-        motor.left_rear_dir_pin.write(Level::High);
-        let _ = motor.left_rear_pwm_pin.pulse_width(1000);
-        motor.right_rear_dir_pin.write(Level::Low);
-        let _ = motor.right_rear_pwm_pin.pulse_width(1000);
-        thread::sleep(Duration::from_secs(2));
+    // motors
+    let mut motors = Motors::new().context("motors init failed")?;
+    println!("MOTORS STARTED.......................................");
+    motors.forward(50.0);
+    thread::sleep(Duration::from_secs(1));
+    motors.stop();
+    println!("MOTORS STOPPED.......................................");
 
-        println!("***************************************************");
-        motor.left_rear_dir_pin.write(Level::Low);
-        let _ = motor.left_rear_pwm_pin.pulse_width(0);
-        motor.right_rear_dir_pin.write(Level::High);
-        let _ = motor.right_rear_pwm_pin.pulse_width(0);
-        thread::sleep(Duration::from_secs(2));
-
-        println!("***************************************************");
-        motor.left_rear_dir_pin.write(Level::High);
-        let _ = motor.left_rear_pwm_pin.pulse_width(500);
-        motor.right_rear_dir_pin.write(Level::Low);
-        let _ = motor.right_rear_pwm_pin.pulse_width(500);
-        thread::sleep(Duration::from_secs(2));
-
-        println!("MOTORS STOPPED.......................................");
-    */
+    // ultrasonic
     let trig_pin = 27; // D2 (robot-hat)
     let echo_pin = 22; // D3 (robot-hat)
 
