@@ -116,7 +116,7 @@ impl PWM {
         let timer = self.channel / 4_u8;
         let reg = REG_PSC + timer;
         self.bus
-            .smbus_write_word(reg, prescaler - 1)
+            .smbus_write_word(reg, (prescaler - 1).swap_bytes())
             .context("PWM PRESCALER SEND FAILED")?;
 
         Ok(())
@@ -126,7 +126,7 @@ impl PWM {
         let timer = self.channel / 4_u8;
         let reg = REG_PER + timer;
         self.bus
-            .smbus_write_word(reg, per)
+            .smbus_write_word(reg, per.swap_bytes())
             .context("PWM PERIOD SEND FAILED")?;
 
         Ok(())
@@ -135,7 +135,7 @@ impl PWM {
     pub fn pulse_width(&mut self, pw: u16) -> Result<()> {
         let reg = REG_PW + self.channel;
         self.bus
-            .smbus_write_word(reg, pw)
+            .smbus_write_word(reg, pw.swap_bytes())
             .context("PWM PULSE WIDTH SEND FAILED")?;
 
         Ok(())
