@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 rppal = "0.14.1"
 anyhow = "1.0"
+image = "0.24.7"
+opencv = "0.84.5"

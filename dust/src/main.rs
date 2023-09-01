@@ -2,15 +2,20 @@ use std::{thread, time::Duration};
 
 use anyhow::{Context, Result};
 
-use drishti::depth::Ultrasonic;
+use drishti::{
+    depth::Ultrasonic,
+    eyes::{capture, cv_example},
+};
 use vahana::{
     drive::{Motors, Servo},
     init_i2c,
 };
 
 fn main() -> Result<()> {
-    // let image_path = "images/image.jpg";
-    // capture("1000", image_path);
+    let image_path = "image.jpg";
+    capture("1000", image_path);
+    cv_example(image_path)?;
+
     let rst_pin = dust::recet_mcu().expect("MCU RESET UNSUCCESSFULL [BEGIN]");
     println!("MCU RESET SUCCESSFULLY WITH PIN [{rst_pin}] [BEGIN]");
     let _i2c = init_i2c().expect("I2C INITIALIZATION FAILED");
@@ -26,6 +31,7 @@ fn main() -> Result<()> {
 
     // motors
     let mut motors = Motors::new().context("motors init failed")?;
+    motors.speed(0.0, 0.0);
     println!("MOTORS STARTED.......................................");
     motors.forward(50.0);
     thread::sleep(Duration::from_secs(1));
