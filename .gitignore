@@ -13,3 +13,6 @@ target-aarch64-unknown-linux-gnu/
 
 # Ignore vscode settings
 .vscode
+
+# Ignore binary file
+bin/

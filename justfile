@@ -1,3 +1,5 @@
+# justfile is used for cross-compiling (to Raspberry Pi) purposes only
+
 # Build variables
 BUILD_NAME := "dust.bin"
 TARGET_NAME := "aarch64-unknown-linux-gnu"
