@@ -12,7 +12,7 @@ const REG_PW: u8 = 0x20; // REG_CHN
 const REG_PSC: u8 = 0x40; // REG_PSC
 const REG_PER: u8 = 0x44; // REG_ARR
 const SLAVE_ADDR: u16 = 0x14;
-const CLOCK: u32 = 72_000_000;
+// const CLOCK: u32 = 72_000_000;
 
 fn mapping(x: f32, in_min: f32, in_max: f32, out_min: f32, out_max: f32) -> f32 {
     (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
@@ -79,7 +79,7 @@ pub struct PWM {
 impl PWM {
     pub fn new(channel: u8) -> Result<Self> {
         let bus = init_i2c().context("PWM I2C INIT FAILED")?;
-        let mut period = vec![0, 0];
+        let period = vec![0, 0, 0, 0];
         let mut pwm = Self {
             channel,
             period,
