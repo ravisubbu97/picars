@@ -4,16 +4,16 @@ use rppal::gpio::{Gpio, Level, OutputPin};
 use crate::{mapping, PWM};
 
 // Servo and Motor Constants
-const PERIOD: u16 = 4095;
-const PRESCALER: u16 = 10;
+const PERIOD: u16 = 1200;
+const PRESCALER: u16 = 1200;
 const FREQ: u16 = 50;
 const MAX_PW: u16 = 2500;
 const MIN_PW: u16 = 500;
 const CLOCK: u32 = 72_000_000;
 
 pub struct Motor {
-    pwm: PWM,
-    dir: OutputPin,
+    pub pwm: PWM,
+    pub dir: OutputPin,
     pub speed: f32,
 }
 
@@ -42,15 +42,15 @@ impl Motor {
 }
 
 pub struct Motors {
-    left_motor: Motor,
-    right_motor: Motor,
+    pub left_motor: Motor,
+    pub right_motor: Motor,
 }
 
 impl Motors {
     pub fn new() -> Result<Self> {
-        let left_motor_pwm_pin: u8 = 13; // P13 (robot-hat)
+        let left_motor_pwm_pin: u8 = 12; // P12 (robot-hat)
         let left_motor_dir_pin: u8 = 23; // D4 (robot-hat)
-        let right_motor_pwm_pin: u8 = 12; // P12 (robot-hat)
+        let right_motor_pwm_pin: u8 = 13; // P13 (robot-hat)
         let right_motor_dir_pin: u8 = 24; // D5 (robot-hat)
 
         let left_motor =

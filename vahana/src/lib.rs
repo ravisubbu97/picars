@@ -25,8 +25,8 @@ pub fn init_i2c() -> Result<I2c> {
 
     i2c.set_slave_address(SLAVE_ADDR)?;
     i2c.smbus_send_byte(0x2C)?;
-    i2c.smbus_send_byte(0)?;
-    i2c.smbus_send_byte(0)?;
+    i2c.smbus_send_byte(0x00)?;
+    i2c.smbus_send_byte(0x00)?;
 
     Ok(i2c)
 }
@@ -77,8 +77,8 @@ pub struct PWM {
 
 impl PWM {
     pub fn new(channel: u8) -> Result<Self> {
-        let i2c = init_i2c().context("PWM I2C INIT FAILED")?;
-        let mut pwm = Self { channel, bus: i2c };
+        let bus = init_i2c().context("PWM I2C INIT FAILED")?;
+        let mut pwm = Self { channel, bus };
 
         pwm.freq(50).context("PWM FREQ INIT FAILED")?;
 
@@ -86,25 +86,29 @@ impl PWM {
     }
 
     pub fn freq(&mut self, freq: u16) -> Result<()> {
-        let mut result_psc = Vec::with_capacity(12); // Create a vector for prescaler
-        let mut result_per = Vec::with_capacity(12); // Create a vector for period
-        let mut result_acy = Vec::with_capacity(12); // Create a vector for accuracy
+        /*  Buggy code: For now, we hardcode the values
+                let mut result_psc = Vec::with_capacity(12); // Create a vector for prescaler
+                let mut result_per = Vec::with_capacity(12); // Create a vector for period
+                let mut result_acy = Vec::with_capacity(12); // Create a vector for accuracy
 
-        let st = ((CLOCK as f32 / freq as f32).sqrt() as u16) - 5;
+                let st = ((CLOCK as f32 / freq as f32).sqrt() as u16) - 5;
 
-        for psc in st..st + 10 {
-            let per = (CLOCK / (freq * psc) as u32) as u16;
-            result_psc.push(psc);
-            result_per.push(per);
-            result_acy.push(f32::abs(freq as f32 - CLOCK as f32 / (psc * per) as f32));
-        }
+                for psc in st..st + 10 {
+                    let per = (CLOCK / (freq * psc) as u32) as u16;
+                    result_psc.push(psc);
+                    result_per.push(per);
+                    result_acy.push(f32::abs(freq as f32 - CLOCK as f32 / (psc * per) as f32));
+                }
 
-        let i = result_acy
-            .iter()
-            .position(|&x| x == result_acy.iter().cloned().fold(f32::INFINITY, f32::min))
-            .unwrap();
-        let psc = result_psc[i];
-        let per = result_per[i];
+                let i = result_acy
+                    .iter()
+                    .position(|&x| x == result_acy.iter().cloned().fold(f32::INFINITY, f32::min))
+                    .unwrap();
+                let psc = result_psc[i];
+                let per = result_per[i];
+        */
+        let psc: u16 = freq * 24; // 1200
+        let per: u16 = freq * 24; // 1200
 
         self.prescaler(psc).context("PWM PRESCALER INIT FAILED")?;
         self.period(per).context("PWM PERIOD INIT FAILED")?;

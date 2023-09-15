@@ -12,13 +12,14 @@ use vahana::{
 };
 
 fn main() -> Result<()> {
-    let image_path = "image.jpg";
-    capture("1000", image_path);
-    cv_example(image_path)?;
-
+    // RESET MCU and INIT I2C
     let rst_pin = dust::recet_mcu().expect("MCU RESET UNSUCCESSFULL [BEGIN]");
     println!("MCU RESET SUCCESSFULLY WITH PIN [{rst_pin}] [BEGIN]");
     let _i2c = init_i2c().expect("I2C INITIALIZATION FAILED");
+
+    let image_path = "image.jpg";
+    capture("1000", image_path);
+    cv_example(image_path)?;
 
     // servo
     let mut camera_servo_pin1 = Servo::new(0).context("camera_servo_pin1 init failed")?; // P0
@@ -31,6 +32,12 @@ fn main() -> Result<()> {
 
     // motors
     let mut motors = Motors::new().context("motors init failed")?;
+    // set period and prescaler for motors
+    motors.left_motor.pwm.period(4095)?;
+    motors.left_motor.pwm.prescaler(10)?;
+    motors.right_motor.pwm.period(4095)?;
+    motors.right_motor.pwm.prescaler(10)?;
+
     motors.speed(0.0, 0.0);
     println!("MOTORS STARTED.......................................");
     motors.forward(50.0);
