@@ -71,7 +71,7 @@ impl Motors {
 
     pub fn speed(&mut self, left_speed: f32, right_speed: f32) {
         let _ = self.left_motor.speed(left_speed);
-        let _ = self.right_motor.speed(right_speed);
+        let _ = self.right_motor.speed(-right_speed); // Negating as per robot-hat python module
     }
 
     pub fn forward(&mut self, speed: f32) {
