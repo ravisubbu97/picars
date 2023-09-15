@@ -72,13 +72,19 @@ pub fn scan_i2c(i2c: I2c) -> Vec<u16> {
 
 pub struct PWM {
     channel: u8,
+    period: Vec<u16>,
     bus: I2c,
 }
 
 impl PWM {
     pub fn new(channel: u8) -> Result<Self> {
         let bus = init_i2c().context("PWM I2C INIT FAILED")?;
-        let mut pwm = Self { channel, bus };
+        let mut period = vec![0, 0];
+        let mut pwm = Self {
+            channel,
+            period,
+            bus,
+        };
 
         pwm.freq(50).context("PWM FREQ INIT FAILED")?;
 
@@ -129,8 +135,9 @@ impl PWM {
     pub fn period(&mut self, per: u16) -> Result<()> {
         let timer = self.channel / 4_u8;
         let reg = REG_PER + timer;
+        self.period[timer as usize] = per - 1;
         self.bus
-            .smbus_write_word(reg, per.swap_bytes())
+            .smbus_write_word(reg, self.period[timer as usize].swap_bytes())
             .context("PWM PERIOD SEND FAILED")?;
 
         Ok(())
@@ -145,11 +152,11 @@ impl PWM {
         Ok(())
     }
 
-    // This code is buggy, FIX ME !!
+    // Buggy code ? !!
     pub fn pulse_width_percent(&mut self, pulse_width_percent: f32) -> Result<()> {
-        let temp = pulse_width_percent / 100.0;
         let timer = self.channel / 4_u8;
-        let pulse_width = (temp * timer as f32) as u16;
+        let temp = pulse_width_percent / 100.0;
+        let pulse_width = (temp * self.period[timer as usize] as f32) as u16;
         self.pulse_width(pulse_width)?;
 
         Ok(())

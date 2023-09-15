@@ -19,6 +19,7 @@ fn main() -> Result<()> {
 
     let image_path = "image.jpg";
     capture("1000", image_path);
+    thread::sleep(Duration::from_secs(1));
     cv_example(image_path)?;
 
     // servo
