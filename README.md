@@ -2,16 +2,22 @@
 Autonomous Vehicle using Raspberry Pi and PiCar-X kit created using Rust
 
 # Folder Structure
-> **dust**: Picar-X binary
+```mermaid
+graph TD;
 
-> **drishti**: Image processing libarry
-1. **depth**: Ultrasonic sensor module
-2. **eyes**: Camera module
+  1[dust<br> Picar-X binary]
+  1 --> 1_1
+  1 --> 1_2
 
-> **vahana**: Driving library
-1. **axel**: Front wheel servo module
-2. **drive**: Rare wheel drive module
-3. **neck**: Camera servo module
+  1_1[drishti<br> Image processing library]
+  1_1 --> 1_1_1[depth<br> Ultrasonic sensor module]
+  1_1 --> 1_1_2[eyes<br> Camera module]
+
+  1_2[vahana<br> Driving library]
+  1_2 --> 1_2_1[axel<br> Front wheel servo module]
+  1_2 --> 1_2_2[drive<br> Rear wheel drive module]
+  1_2 --> 1_2_3[neck<br> Camera servo module]
+```
 
 # Pin Configuration
 
