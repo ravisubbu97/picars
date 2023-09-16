@@ -4,15 +4,19 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use rppal::gpio::{Gpio, InputPin, OutputPin};
 
+// ultrasonic pins
+const TRIG_PIN: u8 = 27; // D2 (robot-hat)
+const ECHO_PIN: u8 = 22; // D3 (robot-hat)
+
 pub struct Ultrasonic {
     trig: OutputPin,
     echo: InputPin,
 }
 
 impl Ultrasonic {
-    pub fn new(trig_pin: u8, echo_pin: u8) -> Result<Self> {
-        let trig = Gpio::new()?.get(trig_pin)?.into_output();
-        let echo = Gpio::new()?.get(echo_pin)?.into_input();
+    pub fn new() -> Result<Self> {
+        let trig = Gpio::new()?.get(TRIG_PIN)?.into_output();
+        let echo = Gpio::new()?.get(ECHO_PIN)?.into_input();
 
         Ok(Ultrasonic { trig, echo })
     }

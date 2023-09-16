@@ -46,11 +46,7 @@ fn main() -> Result<()> {
     motors.stop();
     println!("MOTORS STOPPED.......................................");
 
-    // ultrasonic
-    let trig_pin = 27; // D2 (robot-hat)
-    let echo_pin = 22; // D3 (robot-hat)
-
-    let mut ultrasonic = Ultrasonic::new(trig_pin, echo_pin)?;
+    let mut ultrasonic = Ultrasonic::new()?;
 
     for _ in 0..5 {
         let distance = ultrasonic.read();
