@@ -21,7 +21,7 @@ impl Ultrasonic {
         Ok(Ultrasonic { trig, echo })
     }
 
-    pub fn read(&mut self) -> f32 {
+    pub fn read(&mut self) -> u128 {
         // Set trigger pin low for 5 us
         self.trig.set_low();
         sleep(Duration::from_micros(5));
@@ -39,8 +39,8 @@ impl Ultrasonic {
         while !self.echo.is_low() {}
 
         // Distance in cm
-        let time_taken = pulse_start.elapsed().as_micros() as f32;
+        let time_taken = pulse_start.elapsed().as_micros();
 
-        time_taken / 58.0
+        time_taken / 58
     }
 }
