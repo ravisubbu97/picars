@@ -39,9 +39,9 @@ fn main() -> Result<()> {
     motors.right_motor.pwm.period(4095)?;
     motors.right_motor.pwm.prescaler(10)?;
 
-    motors.speed(0.0, 0.0);
+    motors.speed(0, 0);
     println!("MOTORS STARTED.......................................");
-    motors.forward(50.0);
+    motors.forward(50);
     thread::sleep(Duration::from_secs(1));
     motors.stop();
     println!("MOTORS STOPPED.......................................");

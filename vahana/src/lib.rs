@@ -153,10 +153,9 @@ impl PWM {
     }
 
     // Buggy code ? !!
-    pub fn pulse_width_percent(&mut self, pulse_width_percent: f32) -> Result<()> {
+    pub fn pulse_width_percent(&mut self, pulse_width_percent: u32) -> Result<()> {
         let timer = self.channel / 4_u8;
-        let temp = pulse_width_percent / 100.0;
-        let pulse_width = (temp * self.period[timer as usize] as f32) as u16;
+        let pulse_width = ((self.period[timer as usize] as u32 * pulse_width_percent) / 100) as u16;
         self.pulse_width(pulse_width)?;
 
         Ok(())

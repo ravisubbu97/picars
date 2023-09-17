@@ -6,15 +6,14 @@ use crate::{mapping, PWM};
 // Servo and Motor Constants
 const PERIOD: u16 = 1200;
 const PRESCALER: u16 = 1200;
-const FREQ: u16 = 50;
+// const FREQ: u16 = 50;
 const MAX_PW: u16 = 2500;
 const MIN_PW: u16 = 500;
-const CLOCK: u32 = 72_000_000;
+// const CLOCK: u32 = 72_000_000;
 
 pub struct Motor {
     pub pwm: PWM,
     pub dir: OutputPin,
-    pub speed: f32,
 }
 
 impl Motor {
@@ -23,18 +22,16 @@ impl Motor {
 
         let mut pwm = PWM::new(pwm_pin).context("PWM init failed")?;
         let dir = gpio.get(dir_pin).context("Gpio init failed")?.into_output();
-        let speed = 0.0;
 
         pwm.period(PERIOD)?;
         pwm.prescaler(PRESCALER)?;
-        Ok(Self { pwm, dir, speed })
+        Ok(Self { pwm, dir })
     }
 
-    pub fn speed(&mut self, speed: f32) -> Result<()> {
-        let dir: Level = if speed > 0.0 { Level::High } else { Level::Low };
-        let speed: f32 = speed.abs();
+    pub fn speed(&mut self, speed: i32) -> Result<()> {
+        let dir: Level = if speed > 0 { Level::High } else { Level::Low };
 
-        self.pwm.pulse_width_percent(speed)?;
+        self.pwm.pulse_width_percent(speed.unsigned_abs())?;
         self.dir.write(dir);
 
         Ok(())
@@ -65,28 +62,28 @@ impl Motors {
     }
 
     pub fn stop(&mut self) {
-        let _ = self.left_motor.speed(0.0);
-        let _ = self.right_motor.speed(0.0);
+        let _ = self.left_motor.speed(0);
+        let _ = self.right_motor.speed(0);
     }
 
-    pub fn speed(&mut self, left_speed: f32, right_speed: f32) {
+    pub fn speed(&mut self, left_speed: i32, right_speed: i32) {
         let _ = self.left_motor.speed(left_speed);
         let _ = self.right_motor.speed(-right_speed); // Negating as per robot-hat python module
     }
 
-    pub fn forward(&mut self, speed: f32) {
+    pub fn forward(&mut self, speed: i32) {
         self.speed(speed, speed);
     }
 
-    pub fn backward(&mut self, speed: f32) {
+    pub fn backward(&mut self, speed: i32) {
         self.speed(-speed, -speed);
     }
 
-    pub fn turn_left(&mut self, speed: f32) {
+    pub fn turn_left(&mut self, speed: i32) {
         self.speed(-speed, speed);
     }
 
-    pub fn turn_right(&mut self, speed: f32) {
+    pub fn turn_right(&mut self, speed: i32) {
         self.speed(speed, -speed);
     }
 }
@@ -98,15 +95,15 @@ pub struct Servo {
 impl Servo {
     pub fn new(pwm_pin: u8) -> Result<Self> {
         let mut pwm = PWM::new(pwm_pin).context("PWM init failed")?;
-        let prescaler: u16 = (CLOCK / FREQ as u32 / PERIOD as u32) as u16;
-        pwm.period(PERIOD)?;
-        pwm.prescaler(prescaler)?;
+        pwm.period(4095)?; // ref: robot-hat
+        pwm.prescaler(351)?; // ref: robot-hat --> (CPU_CLOCK / FREQ / PERIOD )
+
         Ok(Self { pwm })
     }
 
     pub fn pulse_width_time(&mut self, pw_time: f32) -> Result<()> {
         let pw_time = pw_time.clamp(MIN_PW.into(), MAX_PW.into());
-        let pwr = pw_time / 20000.0;
+        let pwr = pw_time / 20000.0; // 20,000 us --> 20ms (50Hz signal for servo)
         let value = (pwr * PERIOD as f32) as u16;
         self.pwm.pulse_width(value)?;
 
