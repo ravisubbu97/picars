@@ -14,8 +14,8 @@ const REG_PER: u8 = 0x44; // REG_ARR
 const SLAVE_ADDR: u16 = 0x14;
 // const CLOCK: u32 = 72_000_000;
 
-fn mapping(x: f32, in_min: f32, in_max: f32, out_min: f32, out_max: f32) -> f32 {
-    (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+pub fn map_range(from_range: (i32, i32), to_range: (i32, i32), s: i32) -> i32 {
+    to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
 
 pub fn init_i2c() -> Result<I2c> {

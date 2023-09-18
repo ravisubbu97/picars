@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use rppal::gpio::{Gpio, Level, OutputPin};
 
-use crate::{mapping, PWM};
+use crate::{map_range, PWM};
 
 // Servo and Motor Constants
 const PERIOD: u16 = 1200;
@@ -101,18 +101,17 @@ impl Servo {
         Ok(Self { pwm })
     }
 
-    pub fn pulse_width_time(&mut self, pw_time: f32) -> Result<()> {
-        let pw_time = pw_time.clamp(MIN_PW.into(), MAX_PW.into());
-        let pwr = pw_time / 20000.0; // 20,000 us --> 20ms (50Hz signal for servo)
-        let value = (pwr * PERIOD as f32) as u16;
+    pub fn pulse_width_time(&mut self, pw_time: i32) -> Result<()> {
+        let value = ((pw_time * 4095) / 20000) as u16; // 20,000 us --> 20ms (50Hz signal for servo)
         self.pwm.pulse_width(value)?;
 
         Ok(())
     }
 
-    pub fn angle(&mut self, angle: f32) -> Result<()> {
-        let angle = angle.clamp(-90.0, 90.0);
-        let pw_time = mapping(angle, -90.0, 90.0, MIN_PW.into(), MAX_PW.into());
+    pub fn angle(&mut self, angle: i32) -> Result<()> {
+        let angle = angle.clamp(-90, 90);
+        let pw_time = map_range((-90, 90), (MIN_PW.into(), MAX_PW.into()), angle);
+        let pw_time = pw_time.clamp(MIN_PW.into(), MAX_PW.into());
         let _ = self.pulse_width_time(pw_time);
 
         Ok(())

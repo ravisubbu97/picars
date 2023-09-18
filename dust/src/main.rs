@@ -27,9 +27,9 @@ fn main() -> Result<()> {
     let mut camera_servo_pin2 = Servo::new(1).context("camera_servo_pin2 init failed")?; // P1
     let mut dir_servo_pin = Servo::new(2).context("dir_servo_pin init failed")?; // P2
 
-    camera_servo_pin1.angle(20.0)?;
-    camera_servo_pin2.angle(-20.0)?;
-    dir_servo_pin.angle(10.0)?;
+    camera_servo_pin1.angle(20)?;
+    camera_servo_pin2.angle(-20)?;
+    dir_servo_pin.angle(10)?;
 
     // motors
     let mut motors = Motors::new().context("motors init failed")?;
