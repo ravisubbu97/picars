@@ -24,7 +24,11 @@ fn main() -> Result<()> {
     dir_servo_pin.angle(45)?;
 
     // opencv camera example
-    cv_example("image.jpg", "captured_image.jpg", "edge_image.jpg")?;
+    let time_spent = cv_example("image.jpg", "captured_image.jpg", "edge_image.jpg")?;
+    println!(
+        "Time spent for image loading and canny edge detection: {} secs",
+        time_spent
+    );
 
     // motors
     let mut motors = Motors::new().context("motors init failed")?;
