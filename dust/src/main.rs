@@ -2,7 +2,10 @@ use std::{thread, time::Duration};
 
 use anyhow::{Context, Result};
 
-use drishti::{depth::Ultrasonic, eyes::cv_example};
+use drishti::{
+    depth::Ultrasonic,
+    eyes::{cv_example, nokhwa_example},
+};
 use vahana::{
     drive::{Motors, Servo},
     init_i2c,
@@ -22,6 +25,9 @@ fn main() -> Result<()> {
     camera_servo_pin1.angle(90)?;
     camera_servo_pin2.angle(90)?;
     dir_servo_pin.angle(45)?;
+
+    // nokhwa camera example
+    nokhwa_example("nokhwa.jpg")?;
 
     // opencv camera example
     let time_spent = cv_example("image.jpg", "captured_image.jpg", "edge_image.jpg")?;

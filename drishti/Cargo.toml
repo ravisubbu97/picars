@@ -10,3 +10,8 @@ rppal = "0.14.1"
 anyhow = "1.0"
 image = "0.24.7"
 opencv = "0.84.5"
+
+[dependencies.nokhwa]
+version = "0.10.0"
+# Use the native and v4l input backend
+features = ["input-native", "input-v4l"]
