@@ -6,23 +6,8 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use nokhwa::{pixel_format::RgbFormat, utils::*, Camera};
 use opencv::{core, imgcodecs, imgproc, prelude::*};
 
-pub fn nokhwa_example(img_path: &str) -> Result<()> {
-    let index = CameraIndex::Index(0);
-    let requested =
-        RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-    let mut camera = Camera::new(index, requested).context("Cannot create camera")?;
-    let frame = camera.frame().context("Cannot capture frame")?;
-    let decoded = frame
-        .decode_image::<RgbFormat>()
-        .context("Cannot decode frame")?;
-
-    decoded.save(img_path).context("Cannot save image")?;
-
-    Ok(())
-}
 pub fn cv_example(img_path: &str, cap_img_path: &str, edge_img_path: &str) -> Result<f64> {
     capture("1000", img_path).context("Image capture failed")?;
     thread::sleep(Duration::from_secs(1));
