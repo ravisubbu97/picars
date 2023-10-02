@@ -6,7 +6,38 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use opencv::{core, imgcodecs, imgproc, prelude::*};
+use opencv::{
+    core, highgui, imgcodecs, imgproc,
+    prelude::*,
+    videoio::{self, VideoCapture, VideoCaptureAPIs},
+};
+
+pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
+    videoio::get_camera_backends()
+}
+
+pub fn video_capture() -> Result<()> {
+    let window = "video capture";
+    highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+    let mut cam = VideoCapture::new(0, videoio::CAP_ANY)?;
+    let opened = VideoCapture::is_opened(&cam)?;
+    if !opened {
+        panic!("Unable to open default camera!");
+    }
+    loop {
+        let mut frame = Mat::default();
+        cam.read(&mut frame)?;
+        if frame.size()?.width > 0 {
+            highgui::imshow(window, &frame)?;
+        }
+        let key = highgui::wait_key(10)?;
+        if key > 0 && key != 255 {
+            break;
+        }
+    }
+
+    Ok(())
+}
 
 pub fn cv_example(img_path: &str, cap_img_path: &str, edge_img_path: &str) -> Result<f64> {
     capture("1000", img_path).context("Image capture failed")?;

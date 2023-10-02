@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use anyhow::{Context, Result};
 
-use drishti::{depth::Ultrasonic, eyes::cv_example};
+use drishti::{depth::Ultrasonic, eyes::camera_backends, eyes::cv_example, eyes::video_capture};
 use vahana::{
     drive::{Motors, Servo},
     init_i2c,
@@ -24,6 +24,11 @@ fn main() -> Result<()> {
     dir_servo_pin.angle(45)?;
 
     // opencv camera example
+    let backends = camera_backends().context("unable to get camera backends")?;
+    println!("Avalable camera backends: {:?}", backends);
+
+    video_capture().context("Video capture failed")?;
+
     let time_spent = cv_example("image.jpg", "captured_image.jpg", "edge_image.jpg")?;
     println!(
         "Time spent for image loading and canny edge detection: {} secs",
