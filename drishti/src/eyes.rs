@@ -19,7 +19,7 @@ pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
 pub fn video_capture() -> Result<()> {
     let window = "video capture";
     highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
-    let mut cam = VideoCapture::new(0, videoio::CAP_ANY)?;
+    let mut cam = VideoCapture::new(0, videoio::CAP_V4L2)?;
     let opened = VideoCapture::is_opened(&cam)?;
     if !opened {
         panic!("Unable to open default camera!");
