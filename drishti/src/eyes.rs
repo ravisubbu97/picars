@@ -12,6 +12,18 @@ use opencv::{
     videoio::{self, VideoCapture, VideoCaptureAPIs},
 };
 
+pub fn cuda_check() -> opencv::Result<bool> {
+    let dev_count = core::get_cuda_enabled_device_count()?;
+    let cuda_available = dev_count > 0;
+    if cuda_available {
+        for dev_num in 0..dev_count {
+            core::print_short_cuda_device_info(dev_num)?;
+        }
+    }
+
+    Ok(cuda_available)
+}
+
 pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
     videoio::get_camera_backends()
 }
