@@ -3,8 +3,8 @@ use std::{thread, time::Duration};
 use anyhow::{Context, Result};
 
 use drishti::{
-    depth::Ultrasonic, eyes::camera_backends, eyes::cuda_check, eyes::cv_example,
-    eyes::video_capture,
+    depth::Ultrasonic,
+    eyes::{camera_backends, cuda_check, cv_example, gapi_check, video_capture},
 };
 use vahana::{
     drive::{Motors, Servo},
@@ -27,6 +27,8 @@ fn main() -> Result<()> {
     dir_servo_pin.angle(45)?;
 
     // opencv camera example
+    gapi_check().context("gapi check failed")?;
+
     let cuda_available = cuda_check().context("CUDA check failed")?;
     println!(
         "CUDA is {}",
