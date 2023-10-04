@@ -7,45 +7,10 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Point, Scalar, Size, Vector, BORDER_DEFAULT},
-    gapi, highgui, imgcodecs,
-    imgproc::{self, INTER_LINEAR},
+    core, highgui, imgcodecs, imgproc,
     prelude::*,
     videoio::{self, VideoCapture, VideoCaptureAPIs},
 };
-
-pub fn gapi_check() -> Result<()> {
-    let mut cap = VideoCapture::new(0, videoio::CAP_V4L2)?;
-    assert!(cap.is_opened()?);
-
-    let input = gapi::GMat::default()?;
-    let vga = gapi::resize(&input, Size::default(), 0.5, 0.5, INTER_LINEAR)?;
-    let gray = gapi::bgr2_gray(&vga)?;
-    let blurred = gapi::blur(
-        &gray,
-        Size::new(5, 5),
-        Point::new(-1, -1),
-        BORDER_DEFAULT,
-        Scalar::all(0.),
-    )?;
-    let edges = gapi::canny(&blurred, 32., 128., 3, false)?;
-    let (b, g, r) = gapi::split3(&vga)?.into_tuple();
-    let out = gapi::merge3(&b, &gapi::or_gmat_gmat(&g, &edges)?, &r)?;
-    let mut ac = gapi::GComputation::new(input, out)?;
-    let mut output_frame = Mat::default();
-
-    loop {
-        let mut input_frame = Mat::default();
-        assert!(cap.read(&mut input_frame)?);
-        ac.apply_2(input_frame, &mut output_frame, Vector::new())?;
-        highgui::imshow("output", &output_frame)?;
-        if highgui::wait_key(30)? >= 0 {
-            break;
-        }
-    }
-
-    Ok(())
-}
 
 pub fn cuda_check() -> opencv::Result<bool> {
     let dev_count = core::get_cuda_enabled_device_count()?;
