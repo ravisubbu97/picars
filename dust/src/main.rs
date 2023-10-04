@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     let backends = camera_backends().context("unable to get camera backends")?;
     println!("Avalable camera backends: {:?}", backends);
 
-    video_capture().context("Video capture failed")?;
+    video_capture(10).context("Video capture failed")?;
 
     let time_spent = cv_example("image.jpg", "captured_image.jpg", "edge_image.jpg")?;
     println!(
