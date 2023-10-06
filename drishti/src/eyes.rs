@@ -11,7 +11,7 @@ use opencv::{
     core::{self, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT},
     imgcodecs, imgproc,
     prelude::*,
-    types::{VectorOfVec2f, VectorOfVec3d, VectorOfVec4i},
+    types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
     videoio::{self, VideoCapture, VideoCaptureAPIs},
 };
 
@@ -237,7 +237,7 @@ pub fn capture(timeout: &str, path: &str) -> Result<Output, Error> {
 }
 
 // Function to perform circle detection using Hough Circle Transform
-pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3d> {
+pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3f> {
     // Apply Gaussian blur to reduce noise and improve circle detection
     let mut blurred = Mat::default(); // ToDo: Can be used accross all functions..
     imgproc::gaussian_blur(
@@ -254,7 +254,7 @@ pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3d> {
     .expect("something wrong during blurring");
 
     // Detect circles using the Hough Circle Transform
-    let mut circles = VectorOfVec3d::new();
+    let mut circles = VectorOfVec3f::new();
     imgproc::hough_circles(
         &blurred,                // Input grayscale image
         &mut circles,            // Output vector of circles (x, y, radius)
