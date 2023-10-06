@@ -169,6 +169,8 @@ pub fn cv_example_vid() -> Result<()> {
 
         let circles = hough_circles(&src_gray)?; // giving gray scale image to hough circles function
 
+        println!("number of circles detected{}", circles.len());
+
         // Draw the detected circles on the original image
         let mut cir_output = frame.clone();
         for circle in circles.iter() {
@@ -278,14 +280,29 @@ pub fn detect_green_light(image: &Mat) -> Result<bool> {
     // Define the lower and upper bounds for green in HSV
     let lower_green = Scalar::new(35.0, 100.0, 100.0, 0.0);
     let upper_green = Scalar::new(85.0, 255.0, 255.0, 0.0);
+    let lower_red = Scalar::new(0.0, 100.0, 100.0, 0.0);
+    let upper_red = Scalar::new(10.0, 255.0, 255.0, 0.0);
 
-    // Create a mask for the green region in the image
+    // Create masks for red and green regions in the image
+    let mut red_mask = Mat::default();
     let mut green_mask = Mat::default();
-    core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask).context("Filtering of Pixels failed")?;
+    core::in_range(&hsv_image, &lower_red, &upper_red, &mut red_mask).context("Filtering of red Pixels failed")?;
+    core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask).context("Filtering of green Pixels failed")?;
 
-    // Calculate the total number of non-zero (white) pixels in the green mask
-    let green_pixel_count = core::count_non_zero(&green_mask).context("Count of non-zero pixels failed")?;
+    // Calculate the total number of non-zero (white) pixels in each mask
+    let red_pixel_count = core::count_non_zero(&red_mask).context("Count of non-zero red pixels failed")?;
+    let green_pixel_count = core::count_non_zero(&green_mask).context("Count of non-zero green pixels failed")?;
 
-    // Determine if the green light is detected based on the pixel count
-    Ok(green_pixel_count > 0)
+    #[cfg(feature = "gui")]
+    {
+        highgui::imshow("green_msk_op", &green_mask)?;
+        highgui::imshow("red_msk_op", &red_mask)?;
+    }
+
+    // Determine if the green/red light is detected based on the pixel count
+    if red_pixel_count > green_pixel_count {
+        Ok(red_pixel_count > 0)
+    } else {
+        Ok(green_pixel_count > 0)
+    }
 }
