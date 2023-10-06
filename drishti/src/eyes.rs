@@ -299,6 +299,7 @@ pub fn detect_green_light(image: &Mat) -> Result<bool> {
     // Create masks for red and green regions in the image
     let mut red_mask = Mat::default();
     let mut green_mask = Mat::default();
+  
     core::in_range(&hsv_image, &lower_red, &upper_red, &mut red_mask)
         .context("Filtering of red Pixels failed")?;
     core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask)
@@ -317,7 +318,7 @@ pub fn detect_green_light(image: &Mat) -> Result<bool> {
         highgui::imshow("red_msk_out", &red_mask)?;
         highgui::wait_key(WAIT_MILLIS)?;
     }
-
+  
     // Determine if the green/red light is detected based on the pixel count
     Ok(green_pixel_count > red_pixel_count)
 }
