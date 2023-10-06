@@ -270,7 +270,7 @@ pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3f> {
     Ok(circles)
 }
 
-pub fn detect_green_light(image: &Mat) -> Result<bool>{
+pub fn detect_green_light(image: &Mat) -> Result<bool> {
     // Convert the image to HSV color space
     let mut hsv_image = Mat::default();
     imgproc::cvt_color(image, &mut hsv_image, imgproc::COLOR_BGR2HSV, 0).context("BGR to HSV conversion failed")?;
