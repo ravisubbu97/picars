@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT},
+    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT, CV_8UC1},
     imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
@@ -157,7 +157,9 @@ pub fn cv_example_vid() -> Result<()> {
 
     let mut frame = Mat::default();
     let mut src_gray = Mat::default();
+
     cam.read(&mut frame)?;
+
     if frame.size()?.width > 0 {
         #[cfg(feature = "gui")]
         {
@@ -169,8 +171,13 @@ pub fn cv_example_vid() -> Result<()> {
 
         let circles = hough_circles(&src_gray)?; // giving gray scale image to hough circles function
 
-        // Draw the detected circles on the original image
-        let mut cir_output = frame.clone();
+        println!("number of circles detected{}", circles.len());
+
+        // Create an empty black mask with the same size as the input image
+        let mut mask =
+            Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
+
+        // Draw the detected circles on the mask
         for circle in circles.iter() {
             let center = core::Point {
                 x: circle[0] as i32,
@@ -178,23 +185,30 @@ pub fn cv_example_vid() -> Result<()> {
             };
             let radius = circle[2] as i32;
             imgproc::circle(
-                &mut cir_output,
+                &mut mask,
                 center,
                 radius,
-                core::Scalar::new(0.0, 0.0, 255.0, 0.0),
-                2,
+                core::Scalar::all(255.0),
+                -1,
                 imgproc::LINE_AA,
                 0,
             )?;
         }
+
+        // Create a result image by bitwise AND-ing the input image with the mask
+        let mut only_circles = Mat::default();
+        core::bitwise_and(&frame, &frame, &mut only_circles, &mask)?;
+
         #[cfg(feature = "gui")]
         {
-            highgui::imshow("circles", &cir_output)?;
+            highgui::imshow("circles", &only_circles)?;
+            highgui::wait_key(WAIT_MILLIS)?;
         }
 
-        let green = detect_green_light(&cir_output).context("Green light detection failed")?;
+        let green_light =
+            detect_green_light(&only_circles).context("Green light detection failed")?;
 
-        if green {
+        if green_light {
             println!("🟢 🟩 💚");
         } else {
             println!("🔴 🟥 😡");
@@ -279,16 +293,32 @@ pub fn detect_green_light(image: &Mat) -> Result<bool> {
     // Define the lower and upper bounds for green in HSV
     let lower_green = Scalar::new(35.0, 100.0, 100.0, 0.0);
     let upper_green = Scalar::new(85.0, 255.0, 255.0, 0.0);
+    let lower_red = Scalar::new(0.0, 100.0, 100.0, 0.0);
+    let upper_red = Scalar::new(10.0, 255.0, 255.0, 0.0);
 
-    // Create a mask for the green region in the image
+    // Create masks for red and green regions in the image
+    let mut red_mask = Mat::default();
     let mut green_mask = Mat::default();
+  
+    core::in_range(&hsv_image, &lower_red, &upper_red, &mut red_mask)
+        .context("Filtering of red Pixels failed")?;
     core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask)
-        .context("Filtering of Pixels failed")?;
+        .context("Filtering of green Pixels failed")?;
 
-    // Calculate the total number of non-zero (white) pixels in the green mask
+    // Calculate the total number of non-zero (white) pixels in each mask
+    let red_pixel_count =
+        core::count_non_zero(&red_mask).context("Count of non-zero red pixels failed")?;
     let green_pixel_count =
-        core::count_non_zero(&green_mask).context("Count of non-zero pixels failed")?;
+        core::count_non_zero(&green_mask).context("Count of non-zero green pixels failed")?;
 
-    // Determine if the green light is detected based on the pixel count
-    Ok(green_pixel_count > 0)
+    #[cfg(feature = "gui")]
+    {
+        highgui::imshow("green_msk_out", &green_mask)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+        highgui::imshow("red_msk_out", &red_mask)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+  
+    // Determine if the green/red light is detected based on the pixel count
+    Ok(green_pixel_count > red_pixel_count)
 }
