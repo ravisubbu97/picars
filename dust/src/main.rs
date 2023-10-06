@@ -3,8 +3,8 @@ use std::{thread, time::Duration};
 use anyhow::{Context, Result};
 
 use drishti::{
-    depth::Ultrasonic, eyes::camera_backends, eyes::cuda_check, eyes::cv_example,
-    eyes::video_capture,
+    depth::Ultrasonic,
+    eyes::{camera_backends, cuda_check, cv_example_vid},
 };
 use vahana::{
     drive::{Motors, Servo},
@@ -40,13 +40,14 @@ fn main() -> Result<()> {
     let backends = camera_backends().context("unable to get camera backends")?;
     println!("Avalable camera backends: {:?}", backends);
 
-    video_capture(10).context("Video capture failed")?;
+    cv_example_vid().context("something in video failed")?;
 
-    let time_spent = cv_example("image.jpg", "captured_image.jpg", "edge_image.jpg")?;
-    println!(
-        "Time spent for image loading and canny edge detection: {} secs",
-        time_spent
-    );
+    // let time_spent = cv_example_photo("image.jpg", "captured_image.jpg", "edge_image.jpg")?;
+    // println!(
+    //     "Time spent for image loading and canny edge detection: {} secs",
+    //     time_spent
+    // );
+
 
     // motors
     let mut motors = Motors::new().context("motors init failed")?;
