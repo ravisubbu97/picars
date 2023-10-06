@@ -9,17 +9,24 @@ use std::{
 use anyhow::{Context, Result};
 use opencv::{
     core::{self, Point, Point2f, Scalar, VecN, Vector},
-    highgui, imgcodecs, imgproc,
+    imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec4i},
     videoio::{self, VideoCapture, VideoCaptureAPIs},
 };
 
+#[cfg(feature = "gui")]
+use opencv::highgui;
+
+#[cfg(feature = "gui")]
 const WAIT_MILLIS: i32 = 1000;
+#[cfg(feature = "gui")]
+const STANDARD_NAME: &str = "Standard Hough Lines Demo";
+#[cfg(feature = "gui")]
+const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
+
 const MIN_THRESHOLD: i32 = 50;
 const MAX_TRACKBAR: i32 = 150;
-const STANDARD_NAME: &str = "Standard Hough Lines Demo";
-const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
 
 pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>> {
     let mut s_lines = VectorOfVec2f::new();
@@ -62,8 +69,13 @@ pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2
             0,
         )?;
     }
-    highgui::imshow(STANDARD_NAME, &standard_hough)?;
-    highgui::wait_key(WAIT_MILLIS)?;
+
+    #[cfg(feature = "gui")]
+    {
+        highgui::imshow(STANDARD_NAME, &standard_hough)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+
     imgcodecs::imwrite("standard_hough.jpg", &standard_hough, &Vector::new())?;
 
     Ok(s_lines)
@@ -95,8 +107,13 @@ pub fn probabilistic_hough(edges: &Mat, p_trackbar: i32) -> Result<Vector<VecN<i
             0,
         )?;
     }
-    highgui::imshow(PROBABILISTIC_NAME, &probabalistic_hough)?;
-    highgui::wait_key(WAIT_MILLIS)?;
+
+    #[cfg(feature = "gui")]
+    {
+        highgui::imshow(PROBABILISTIC_NAME, &probabalistic_hough)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+
     imgcodecs::imwrite(
         "probabalistic_hough.jpg",
         &probabalistic_hough,
@@ -123,8 +140,12 @@ pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
 }
 
 pub fn video_capture(time: u64) -> Result<()> {
+    #[cfg(feature = "gui")]
     let window = "video capture";
-    highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+    #[cfg(feature = "gui")]
+    {
+        highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+    }
     let mut cam = VideoCapture::new(0, videoio::CAP_V4L2)?;
     let opened = VideoCapture::is_opened(&cam)?;
     if !opened {
@@ -139,9 +160,11 @@ pub fn video_capture(time: u64) -> Result<()> {
         let mut frame = Mat::default();
         cam.read(&mut frame)?;
         if frame.size()?.width > 0 {
-            highgui::imshow(window, &frame)?;
-            highgui::wait_key(WAIT_MILLIS)?;
-
+            #[cfg(feature = "gui")]
+            {
+                highgui::imshow(window, &frame)?;
+                highgui::wait_key(WAIT_MILLIS)?;
+            }
             let mut src_gray = Mat::default();
             imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
                 .context("BGR2RGB conversion failed")?;

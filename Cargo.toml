@@ -6,3 +6,5 @@ members = [
     "drishti",
     "vahana",
 ]
+
+default-members = ["dust"]
