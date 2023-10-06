@@ -48,7 +48,6 @@ fn main() -> Result<()> {
     //     time_spent
     // );
 
-
     // motors
     let mut motors = Motors::new().context("motors init failed")?;
     // set period and prescaler for motors

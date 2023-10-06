@@ -273,7 +273,8 @@ pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3f> {
 pub fn detect_green_light(image: &Mat) -> Result<bool> {
     // Convert the image to HSV color space
     let mut hsv_image = Mat::default();
-    imgproc::cvt_color(image, &mut hsv_image, imgproc::COLOR_BGR2HSV, 0).context("BGR to HSV conversion failed")?;
+    imgproc::cvt_color(image, &mut hsv_image, imgproc::COLOR_BGR2HSV, 0)
+        .context("BGR to HSV conversion failed")?;
 
     // Define the lower and upper bounds for green in HSV
     let lower_green = Scalar::new(35.0, 100.0, 100.0, 0.0);
@@ -281,10 +282,12 @@ pub fn detect_green_light(image: &Mat) -> Result<bool> {
 
     // Create a mask for the green region in the image
     let mut green_mask = Mat::default();
-    core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask).context("Filtering of Pixels failed")?;
+    core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask)
+        .context("Filtering of Pixels failed")?;
 
     // Calculate the total number of non-zero (white) pixels in the green mask
-    let green_pixel_count = core::count_non_zero(&green_mask).context("Count of non-zero pixels failed")?;
+    let green_pixel_count =
+        core::count_non_zero(&green_mask).context("Count of non-zero pixels failed")?;
 
     // Determine if the green light is detected based on the pixel count
     Ok(green_pixel_count > 0)
