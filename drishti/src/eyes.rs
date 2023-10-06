@@ -3,21 +3,21 @@ use std::{
     io::Error,
     process::{Command, Output},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Point, Point2f, Scalar, VecN, Vector},
+    core::{self, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT},
     highgui, imgcodecs, imgproc,
     prelude::*,
-    types::{VectorOfVec2f, VectorOfVec4i},
+    types::{VectorOfVec2f, VectorOfVec4i, VectorOfVec3d},
     videoio::{self, VideoCapture, VideoCaptureAPIs},
 };
 
 const WAIT_MILLIS: i32 = 1000;
 const MIN_THRESHOLD: i32 = 50;
-const MAX_TRACKBAR: i32 = 150;
+// const MAX_TRACKBAR: i32 = 150;
 const STANDARD_NAME: &str = "Standard Hough Lines Demo";
 const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
 
@@ -122,7 +122,7 @@ pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
     videoio::get_camera_backends()
 }
 
-pub fn video_capture(time: u64) -> Result<()> {
+pub fn cv_example_vid() -> Result<()> {
     let window = "video capture";
     highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
     let mut cam = VideoCapture::new(0, videoio::CAP_V4L2)?;
@@ -131,38 +131,57 @@ pub fn video_capture(time: u64) -> Result<()> {
         panic!("Unable to open default camera!");
     }
 
-    let s_trackbar = MAX_TRACKBAR;
-    let p_trackbar = MAX_TRACKBAR;
+    // let s_trackbar = MAX_TRACKBAR;
+    // let p_trackbar = MAX_TRACKBAR;
 
-    loop {
-        let time_spent = Instant::now();
-        let mut frame = Mat::default();
-        cam.read(&mut frame)?;
-        if frame.size()?.width > 0 {
-            highgui::imshow(window, &frame)?;
-            highgui::wait_key(WAIT_MILLIS)?;
+    let mut frame = Mat::default();
+    let mut src_gray = Mat::default();
 
-            let mut src_gray = Mat::default();
-            imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
-                .context("BGR2RGB conversion failed")?;
+    cam.read(&mut frame)?;
+    if frame.size()?.width > 0 {
+        highgui::imshow(window, &frame)?;
+        highgui::wait_key(WAIT_MILLIS)?;
 
-            let mut edges = Mat::default();
-            imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
-                .context("Canny Algorithm failed")?;
+        
+        imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
+            .context("BGR2GRAY conversion failed")?;
 
-            standard_hough(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
-            probabilistic_hough(&edges, p_trackbar)
-                .context("Probabilistic Hough Transfrom failed")?;
-        }
-        if time_spent.elapsed().as_secs() > time {
-            break;
-        }
+        let circles = hough_circles(&src_gray)?; // giving gray scale image to hough circles function
+
+        // Draw the detected circles on the original image
+    let mut cir_output = frame.clone();
+    for circle in circles.iter() {
+        let center = core::Point {
+            x: circle[0] as i32,
+            y: circle[1] as i32,
+        };
+        let radius = circle[2] as i32;
+        imgproc::circle(&mut cir_output, center, radius, core::Scalar::new(0.0, 0.0, 255.0, 0.0), 2, imgproc::LINE_AA, 0)?;
+    }
+    highgui::imshow("circles", &cir_output)?;
+
+    let green = detect_green_light(&cir_output);
+
+    if green{
+        println!("Green light, goooooooooo......!!!!!!!!!!!!!");
+    }
+    else {
+        println!("wait not yet green");
+    }
+
+        // let mut edges = Mat::default();
+        // imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
+        //     .context("Canny Algorithm failed")?;
+
+        // standard_hough(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
+        // probabilistic_hough(&edges, p_trackbar)
+        //     .context("Probabilistic Hough Transfrom failed")?;
     }
 
     Ok(())
 }
 
-pub fn cv_example(img_path: &str, cap_img_path: &str, edge_img_path: &str) -> Result<f64> {
+pub fn cv_example_photo(img_path: &str, cap_img_path: &str, edge_img_path: &str) -> Result<f64> {
     capture("1000", img_path).context("Image capture failed")?;
     thread::sleep(Duration::from_secs(1));
 
@@ -185,4 +204,49 @@ pub fn capture(timeout: &str, path: &str) -> Result<Output, Error> {
     Command::new("libcamera-still")
         .args(["-t", timeout, "-o", path])
         .output()
+}
+
+// Function to perform circle detection using Hough Circle Transform
+pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3d>{
+
+    // Apply Gaussian blur to reduce noise and improve circle detection
+    let mut blurred = Mat::default();                          // ToDo: Can be used accross all functions..
+    imgproc::gaussian_blur(input_image, &mut blurred, core::Size { width: 9, height: 9 }, 2.0, 2.0, BORDER_DEFAULT).expect("something wrong during blurring");
+
+    // Detect circles using the Hough Circle Transform
+    let mut circles = VectorOfVec3d::new();
+    imgproc::hough_circles(
+        &blurred,                  // Input grayscale image
+        &mut circles,              // Output vector of circles (x, y, radius)
+        imgproc::HOUGH_GRADIENT,   // Detection method
+        1.0,                       // Inverse ratio of the accumulator resolution to the image resolution
+        50.0,                      // Minimum distance between detected centers
+        100.0,                     // Canny edge detection threshold
+        30.0,                        // Accumulator threshold for circle detection
+        10,                        // Minimum circle radius
+        200,                       // Maximum circle radius
+    )?;
+
+    Ok(circles)
+
+}
+
+pub fn detect_green_light(image: &Mat)-> bool{
+    // Convert the image to HSV color space
+    let mut hsv_image = Mat::default();
+    imgproc::cvt_color(image, &mut hsv_image, imgproc::COLOR_BGR2HSV, 0).unwrap();
+
+    // Define the lower and upper bounds for green in HSV
+    let lower_green = Scalar::new(35.0, 100.0, 100.0, 0.0);
+    let upper_green = Scalar::new(85.0, 255.0, 255.0, 0.0);
+
+    // Create a mask for the green region in the image
+    let mut green_mask = Mat::default();
+    core::in_range(&hsv_image, &lower_green, &upper_green, &mut green_mask).unwrap();
+
+    // Calculate the total number of non-zero (white) pixels in the green mask
+    let green_pixel_count = core::count_non_zero(&green_mask).unwrap();
+
+    // Determine if the green light is detected based on the pixel count
+    green_pixel_count > 0
 }
