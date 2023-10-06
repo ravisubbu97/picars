@@ -7,5 +7,12 @@ edition = "2021"
 rppal = "0.14.1"
 anyhow = "1.0"
 
-drishti = { path = "../drishti" }
-vahana = { path = "../vahana" }
+[dependencies.drishti]
+path = "../drishti"
+
+[dependencies.vahana]
+path = "../vahana"
+
+[features]
+default = ["gui"]
+gui = ["drishti/gui"]

@@ -9,17 +9,24 @@ use std::{
 use anyhow::{Context, Result};
 use opencv::{
     core::{self, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT},
-    highgui, imgcodecs, imgproc,
+    imgcodecs, imgproc,
     prelude::*,
-    types::{VectorOfVec2f, VectorOfVec4i, VectorOfVec3d},
+    types::{VectorOfVec2f, VectorOfVec3d, VectorOfVec4i},
     videoio::{self, VideoCapture, VideoCaptureAPIs},
 };
 
+#[cfg(feature = "gui")]
+use opencv::highgui;
+
+#[cfg(feature = "gui")]
 const WAIT_MILLIS: i32 = 1000;
-const MIN_THRESHOLD: i32 = 50;
-// const MAX_TRACKBAR: i32 = 150;
+#[cfg(feature = "gui")]
 const STANDARD_NAME: &str = "Standard Hough Lines Demo";
+#[cfg(feature = "gui")]
 const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
+
+const MIN_THRESHOLD: i32 = 50;
+const MAX_TRACKBAR: i32 = 150;
 
 pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>> {
     let mut s_lines = VectorOfVec2f::new();
@@ -62,8 +69,13 @@ pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2
             0,
         )?;
     }
-    highgui::imshow(STANDARD_NAME, &standard_hough)?;
-    highgui::wait_key(WAIT_MILLIS)?;
+
+    #[cfg(feature = "gui")]
+    {
+        highgui::imshow(STANDARD_NAME, &standard_hough)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+
     imgcodecs::imwrite("standard_hough.jpg", &standard_hough, &Vector::new())?;
 
     Ok(s_lines)
@@ -95,8 +107,13 @@ pub fn probabilistic_hough(edges: &Mat, p_trackbar: i32) -> Result<Vector<VecN<i
             0,
         )?;
     }
-    highgui::imshow(PROBABILISTIC_NAME, &probabalistic_hough)?;
-    highgui::wait_key(WAIT_MILLIS)?;
+
+    #[cfg(feature = "gui")]
+    {
+        highgui::imshow(PROBABILISTIC_NAME, &probabalistic_hough)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+
     imgcodecs::imwrite(
         "probabalistic_hough.jpg",
         &probabalistic_hough,
@@ -123,59 +140,72 @@ pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
 }
 
 pub fn cv_example_vid() -> Result<()> {
+    #[cfg(feature = "gui")]
     let window = "video capture";
-    highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+    #[cfg(feature = "gui")]
+    {
+        highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+    }
     let mut cam = VideoCapture::new(0, videoio::CAP_V4L2)?;
     let opened = VideoCapture::is_opened(&cam)?;
     if !opened {
         panic!("Unable to open default camera!");
     }
 
-    // let s_trackbar = MAX_TRACKBAR;
-    // let p_trackbar = MAX_TRACKBAR;
+    let s_trackbar = MAX_TRACKBAR;
+    let p_trackbar = MAX_TRACKBAR;
 
     let mut frame = Mat::default();
     let mut src_gray = Mat::default();
-
     cam.read(&mut frame)?;
     if frame.size()?.width > 0 {
-        highgui::imshow(window, &frame)?;
-        highgui::wait_key(WAIT_MILLIS)?;
-
-        
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow(window, &frame)?;
+            highgui::wait_key(WAIT_MILLIS)?;
+        }
         imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
             .context("BGR2GRAY conversion failed")?;
 
         let circles = hough_circles(&src_gray)?; // giving gray scale image to hough circles function
 
         // Draw the detected circles on the original image
-    let mut cir_output = frame.clone();
-    for circle in circles.iter() {
-        let center = core::Point {
-            x: circle[0] as i32,
-            y: circle[1] as i32,
-        };
-        let radius = circle[2] as i32;
-        imgproc::circle(&mut cir_output, center, radius, core::Scalar::new(0.0, 0.0, 255.0, 0.0), 2, imgproc::LINE_AA, 0)?;
-    }
-    highgui::imshow("circles", &cir_output)?;
+        let mut cir_output = frame.clone();
+        for circle in circles.iter() {
+            let center = core::Point {
+                x: circle[0] as i32,
+                y: circle[1] as i32,
+            };
+            let radius = circle[2] as i32;
+            imgproc::circle(
+                &mut cir_output,
+                center,
+                radius,
+                core::Scalar::new(0.0, 0.0, 255.0, 0.0),
+                2,
+                imgproc::LINE_AA,
+                0,
+            )?;
+        }
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow("circles", &cir_output)?;
+        }
 
-    let green = detect_green_light(&cir_output);
+        let green = detect_green_light(&cir_output);
 
-    if green{
-        println!("Green light, goooooooooo......!!!!!!!!!!!!!");
-    }
-    else {
-        println!("wait not yet green");
-    }
+        if green {
+            println!("Green light, goooooooooo......!!!!!!!!!!!!!");
+        } else {
+            println!("wait not yet green");
+        }
 
-        // let mut edges = Mat::default();
-        // imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
-        //     .context("Canny Algorithm failed")?;
+        let mut edges = Mat::default();
+        imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
+            .context("Canny Algorithm failed")?;
 
-        // standard_hough(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
-        // probabilistic_hough(&edges, p_trackbar)
-        //     .context("Probabilistic Hough Transfrom failed")?;
+        standard_hough(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
+        probabilistic_hough(&edges, p_trackbar).context("Probabilistic Hough Transfrom failed")?;
     }
 
     Ok(())
@@ -207,31 +237,40 @@ pub fn capture(timeout: &str, path: &str) -> Result<Output, Error> {
 }
 
 // Function to perform circle detection using Hough Circle Transform
-pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3d>{
-
+pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3d> {
     // Apply Gaussian blur to reduce noise and improve circle detection
-    let mut blurred = Mat::default();                          // ToDo: Can be used accross all functions..
-    imgproc::gaussian_blur(input_image, &mut blurred, core::Size { width: 9, height: 9 }, 2.0, 2.0, BORDER_DEFAULT).expect("something wrong during blurring");
+    let mut blurred = Mat::default(); // ToDo: Can be used accross all functions..
+    imgproc::gaussian_blur(
+        input_image,
+        &mut blurred,
+        core::Size {
+            width: 9,
+            height: 9,
+        },
+        2.0,
+        2.0,
+        BORDER_DEFAULT,
+    )
+    .expect("something wrong during blurring");
 
     // Detect circles using the Hough Circle Transform
     let mut circles = VectorOfVec3d::new();
     imgproc::hough_circles(
-        &blurred,                  // Input grayscale image
-        &mut circles,              // Output vector of circles (x, y, radius)
-        imgproc::HOUGH_GRADIENT,   // Detection method
-        1.0,                       // Inverse ratio of the accumulator resolution to the image resolution
-        50.0,                      // Minimum distance between detected centers
-        100.0,                     // Canny edge detection threshold
-        30.0,                        // Accumulator threshold for circle detection
-        10,                        // Minimum circle radius
-        200,                       // Maximum circle radius
+        &blurred,                // Input grayscale image
+        &mut circles,            // Output vector of circles (x, y, radius)
+        imgproc::HOUGH_GRADIENT, // Detection method
+        1.0,   // Inverse ratio of the accumulator resolution to the image resolution
+        50.0,  // Minimum distance between detected centers
+        100.0, // Canny edge detection threshold
+        30.0,  // Accumulator threshold for circle detection
+        10,    // Minimum circle radius
+        200,   // Maximum circle radius
     )?;
 
     Ok(circles)
-
 }
 
-pub fn detect_green_light(image: &Mat)-> bool{
+pub fn detect_green_light(image: &Mat) -> bool {
     // Convert the image to HSV color space
     let mut hsv_image = Mat::default();
     imgproc::cvt_color(image, &mut hsv_image, imgproc::COLOR_BGR2HSV, 0).unwrap();
