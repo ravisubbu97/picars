@@ -28,11 +28,11 @@ const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
 const MIN_THRESHOLD: i32 = 50;
 const MAX_TRACKBAR: i32 = 150;
 
-pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>> {
+pub fn hough_lines(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>> {
     let mut s_lines = VectorOfVec2f::new();
-    let mut standard_hough = Mat::default();
+    let mut hough_lines = Mat::default();
 
-    imgproc::cvt_color(edges, &mut standard_hough, imgproc::COLOR_GRAY2BGR, 0)?;
+    imgproc::cvt_color(edges, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
     imgproc::hough_lines(
         edges,
         &mut s_lines,
@@ -60,7 +60,7 @@ pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2
             .to::<i32>()
             .unwrap();
         imgproc::line(
-            &mut standard_hough,
+            &mut hough_lines,
             pt1,
             pt2,
             Scalar::new(255., 0., 0., 0.),
@@ -72,11 +72,11 @@ pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2
 
     #[cfg(feature = "gui")]
     {
-        highgui::imshow(STANDARD_NAME, &standard_hough)?;
+        highgui::imshow(STANDARD_NAME, &hough_lines)?;
         highgui::wait_key(WAIT_MILLIS)?;
     }
 
-    imgcodecs::imwrite("standard_hough.jpg", &standard_hough, &Vector::new())?;
+    imgcodecs::imwrite("hough_lines.jpg", &hough_lines, &Vector::new())?;
 
     Ok(s_lines)
 }
@@ -173,10 +173,10 @@ pub fn cv_example_vid() -> Result<()> {
             .context("Canny Algorithm failed")?;
 
         let lines_out =
-            standard_hough(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
+            hough_lines(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
         println!("LINES: {:?}", lines_out);
 
-        let circles = hough_circles(&edges).context("circles are not created")?; // giving gray scale image to hough circles function
+        let circles = hough_circles(&src_gray).context("circles are not created")?; // giving gray scale image to hough circles function
 
         println!("number of circles detected{}", circles.len());
 
