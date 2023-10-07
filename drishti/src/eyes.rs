@@ -140,8 +140,8 @@ fn calculate_lane_center(lines: &VectorOfVec4i, image_width: f32) -> opencv::Res
 fn lane_detector(lines: &VectorOfVec4i, image_width: f32, image: &Mat) -> Result<()> {
     // Calculate the lane center
     let (lane_center_x, line_count) = calculate_lane_center(lines, image_width)?;
-    // Calculate the image center
-    let image_center_x = image_width / 2.0;
+    // image centre is always 0.5 ?
+    let image_center_x = 0.5;
     // Calculate the deviation from the lane center
     let deviation = image_center_x - lane_center_x;
     println!(
@@ -206,8 +206,8 @@ fn lane_detector(lines: &VectorOfVec4i, image_width: f32, image: &Mat) -> Result
 fn lane_detector(lines: &VectorOfVec4i, image_width: f32) -> Result<()> {
     // Calculate the lane center
     let (lane_center_x, line_count) = calculate_lane_center(lines, image_width)?;
-    // Calculate the image center
-    let image_center_x = image_width / 2.0;
+    // image centre is always 0.5 ?
+    let image_center_x = 0.5;
     // Calculate the deviation from the lane center
     let deviation = image_center_x - lane_center_x;
     println!(
