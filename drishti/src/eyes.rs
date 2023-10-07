@@ -28,7 +28,7 @@ const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
 const MIN_THRESHOLD: i32 = 50;
 const MAX_TRACKBAR: i32 = 150;
 
-pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Mat> {
+pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>> {
     let mut s_lines = VectorOfVec2f::new();
     let mut standard_hough = Mat::default();
 
@@ -78,7 +78,7 @@ pub fn standard_hough(edges: &Mat, s_trackbar: i32) -> Result<Mat> {
 
     imgcodecs::imwrite("standard_hough.jpg", &standard_hough, &Vector::new())?;
 
-    Ok(standard_hough)
+    Ok(s_lines)
 }
 
 pub fn probabilistic_hough(edges: &Mat, p_trackbar: i32) -> Result<Vector<VecN<i32, 4>>> {
@@ -174,8 +174,9 @@ pub fn cv_example_vid() -> Result<()> {
 
         let lines_out =
             standard_hough(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
+        println!("LINES: {:?}", lines_out);
 
-        let circles = hough_circles(&lines_out).context("circles are not created")?; // giving gray scale image to hough circles function
+        let circles = hough_circles(&edges).context("circles are not created")?; // giving gray scale image to hough circles function
 
         println!("number of circles detected{}", circles.len());
 
