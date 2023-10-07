@@ -108,12 +108,10 @@ impl Servo {
         Ok(())
     }
 
-    pub fn angle(&mut self, angle: i32) -> Result<()> {
+    pub fn angle(&mut self, angle: i32) {
         let angle = angle.clamp(-90, 90);
         let pw_time = map_range((-90, 90), (MIN_PW.into(), MAX_PW.into()), angle);
         let pw_time = pw_time.clamp(MIN_PW.into(), MAX_PW.into());
         let _ = self.pulse_width_time(pw_time);
-
-        Ok(())
     }
 }
