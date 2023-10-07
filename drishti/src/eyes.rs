@@ -25,10 +25,9 @@ const STANDARD_NAME: &str = "Standard Hough Lines Demo";
 #[cfg(feature = "gui")]
 const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
 
-const MIN_THRESHOLD: i32 = 50;
-const MAX_TRACKBAR: i32 = 150;
+const HOUGH_THRESHOLD: i32 = 50;
 
-pub fn hough_lines(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>> {
+pub fn standard_hough(edges: &Mat) -> Result<Vector<VecN<f32, 2>>> {
     let mut s_lines = VectorOfVec2f::new();
     let mut hough_lines = Mat::default();
 
@@ -38,89 +37,194 @@ pub fn hough_lines(edges: &Mat, s_trackbar: i32) -> Result<Vector<VecN<f32, 2>>>
         &mut s_lines,
         1.,
         PI / 180.,
-        MIN_THRESHOLD + s_trackbar,
+        HOUGH_THRESHOLD + 100,
         0.,
         0.,
         0.,
         PI,
     )?;
 
-    for s_line in s_lines.iter() {
-        let [r, t] = *s_line;
-        let cos_t = t.cos();
-        let sin_t = t.sin();
-        let x0 = r * cos_t;
-        let y0 = r * sin_t;
-        let alpha = 1000.;
-
-        let pt1 = Point2f::new(x0 + alpha * -sin_t, y0 + alpha * cos_t)
-            .to::<i32>()
-            .unwrap();
-        let pt2 = Point2f::new(x0 - alpha * -sin_t, y0 - alpha * cos_t)
-            .to::<i32>()
-            .unwrap();
-        imgproc::line(
-            &mut hough_lines,
-            pt1,
-            pt2,
-            Scalar::new(255., 0., 0., 0.),
-            3,
-            imgproc::LINE_AA,
-            0,
-        )?;
-    }
-
     #[cfg(feature = "gui")]
     {
+        for s_line in s_lines.iter() {
+            let [r, t] = *s_line;
+            let cos_t = t.cos();
+            let sin_t = t.sin();
+            let x0 = r * cos_t;
+            let y0 = r * sin_t;
+            let alpha = 1000.;
+
+            let pt1 = Point2f::new(x0 + alpha * -sin_t, y0 + alpha * cos_t)
+                .to::<i32>()
+                .unwrap();
+            let pt2 = Point2f::new(x0 - alpha * -sin_t, y0 - alpha * cos_t)
+                .to::<i32>()
+                .unwrap();
+            imgproc::line(
+                &mut hough_lines,
+                pt1,
+                pt2,
+                Scalar::new(255., 0., 0., 0.),
+                3,
+                imgproc::LINE_AA,
+                0,
+            )?;
+        }
         highgui::imshow(STANDARD_NAME, &hough_lines)?;
         highgui::wait_key(WAIT_MILLIS)?;
     }
 
-    imgcodecs::imwrite("hough_lines.jpg", &hough_lines, &Vector::new())?;
-
     Ok(s_lines)
 }
 
-pub fn probabilistic_hough(edges: &Mat, p_trackbar: i32) -> Result<Vector<VecN<i32, 4>>> {
+pub fn probabilistic_hough(edges: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     let mut p_lines = VectorOfVec4i::new();
-    let mut probabalistic_hough = Mat::default();
+    let mut hough_lines = Mat::default();
 
-    imgproc::cvt_color(edges, &mut probabalistic_hough, imgproc::COLOR_GRAY2BGR, 0)?;
+    imgproc::cvt_color(edges, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
     imgproc::hough_lines_p(
         edges,
         &mut p_lines,
         1.,
         PI / 180.,
-        MIN_THRESHOLD + p_trackbar,
+        HOUGH_THRESHOLD,
         30.,
         10.,
     )?;
 
-    for l in p_lines.iter() {
+    #[cfg(feature = "gui")]
+    {
+        for l in p_lines.iter() {
+            imgproc::line(
+                &mut hough_lines,
+                Point::new(l[0], l[1]),
+                Point::new(l[2], l[3]),
+                Scalar::new(255., 0., 0., 0.),
+                3,
+                imgproc::LINE_AA,
+                0,
+            )?;
+        }
+        highgui::imshow(PROBABILISTIC_NAME, &hough_lines)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+
+    Ok(p_lines)
+}
+
+fn calculate_lane_center(lines: &VectorOfVec4i, image_width: f32) -> opencv::Result<(f32, f32)> {
+    // Calculate the lane center as the average of x-coordinates of the detected lines
+    // TODO: Line count should be 2 (maybe nearest two ?), bcz we need to detect only one lane
+    let mut lane_center_x: f32 = 0.0;
+    let mut line_count: f32 = 0.0;
+
+    for line in lines.iter() {
+        let x1 = line[0] as f32;
+        let x2 = line[2] as f32;
+
+        lane_center_x += (x1 + x2) / 2.0;
+        line_count += 1.0;
+    }
+
+    if line_count > 0.0 {
+        lane_center_x /= line_count;
+    }
+
+    // Convert lane_center_x to be relative to the image width (0.0 = left, 1.0 = right)
+    lane_center_x /= image_width;
+
+    Ok((lane_center_x, line_count))
+}
+
+#[cfg(feature = "gui")]
+fn lane_detector(lines: &VectorOfVec4i, image_width: f32, image: &Mat) -> Result<()> {
+    // Calculate the lane center
+    let (lane_center_x, line_count) = calculate_lane_center(lines, image_width)?;
+    // Calculate the image center
+    let image_center_x = image_width / 2.0;
+    // Calculate the deviation from the lane center
+    let deviation = image_center_x - lane_center_x;
+    println!(
+        "[lane_center_x: {}] [line_count: {}] [image_center_x: {}] [deviation: {}]",
+        lane_center_x, line_count, image_center_x, deviation
+    );
+
+    // Example steering decision based on the deviation
+    if deviation < 0.0 {
+        println!("Steer left");
+    } else if deviation > 0.0 {
+        println!("Steer right");
+    } else {
+        println!("Keep straight");
+    }
+
+    // Draw detected lines and lane center on the original image
+    let mut result = image.clone();
+    for line in lines.iter() {
+        let pt1 = core::Point {
+            x: line[0],
+            y: line[1],
+        };
+        let pt2 = core::Point {
+            x: line[2],
+            y: line[3],
+        };
         imgproc::line(
-            &mut probabalistic_hough,
-            Point::new(l[0], l[1]),
-            Point::new(l[2], l[3]),
-            Scalar::new(255., 0., 0., 0.),
-            3,
+            &mut result,
+            pt1,
+            pt2,
+            Scalar::new(0.0, 0.0, 255.0, 0.0),
+            2,
             imgproc::LINE_AA,
             0,
         )?;
     }
-
-    #[cfg(feature = "gui")]
-    {
-        highgui::imshow(PROBABILISTIC_NAME, &probabalistic_hough)?;
-        highgui::wait_key(WAIT_MILLIS)?;
-    }
-
-    imgcodecs::imwrite(
-        "probabalistic_hough.jpg",
-        &probabalistic_hough,
-        &Vector::new(),
+    imgproc::line(
+        &mut result,
+        core::Point {
+            x: lane_center_x as i32,
+            y: 0,
+        },
+        core::Point {
+            x: lane_center_x as i32,
+            y: image.rows(),
+        },
+        Scalar::new(0.0, 255.0, 0.0, 0.0),
+        2,
+        imgproc::LINE_AA,
+        0,
     )?;
 
-    Ok(p_lines)
+    // Display or save the result image
+    highgui::imshow("Lane Detection", &result)?;
+    highgui::wait_key(0)?;
+
+    Ok(())
+}
+
+#[cfg(not(feature = "gui"))]
+fn lane_detector(lines: &VectorOfVec4i, image_width: f32) -> Result<()> {
+    // Calculate the lane center
+    let (lane_center_x, line_count) = calculate_lane_center(lines, image_width)?;
+    // Calculate the image center
+    let image_center_x = image_width / 2.0;
+    // Calculate the deviation from the lane center
+    let deviation = image_center_x - lane_center_x;
+    println!(
+        "[lane_center_x: {}] [line_count: {}] [image_center_x: {}] [deviation: {}]",
+        lane_center_x, line_count, image_center_x, deviation
+    );
+
+    // Example steering decision based on the deviation
+    if deviation < 0.0 {
+        println!("Steer left");
+    } else if deviation > 0.0 {
+        println!("Steer right");
+    } else {
+        println!("Keep straight");
+    }
+
+    Ok(())
 }
 
 pub fn cuda_check() -> opencv::Result<bool> {
@@ -152,8 +256,6 @@ pub fn cv_example_vid() -> Result<()> {
         panic!("Unable to open default camera!");
     }
 
-    let s_trackbar = MAX_TRACKBAR;
-
     let mut frame = Mat::default();
     let mut src_gray = Mat::default();
 
@@ -172,9 +274,8 @@ pub fn cv_example_vid() -> Result<()> {
         imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
             .context("Canny Algorithm failed")?;
 
-        let lines_out =
-            hough_lines(&edges, s_trackbar).context("Standard Hough Transfrom failed")?;
-        println!("LINES: {:?}", lines_out);
+        let hough_lines = probabilistic_hough(&edges).context("Standard Hough Transfrom failed")?;
+        println!("LINES: {:?}", hough_lines);
 
         let circles = hough_circles(&src_gray).context("circles are not created")?; // giving gray scale image to hough circles function
 
@@ -219,6 +320,16 @@ pub fn cv_example_vid() -> Result<()> {
             println!("🟢 🟩 💚 [GREEN]");
         } else {
             println!("🔴 🟥 😡 [RED]");
+        }
+
+        #[cfg(feature = "gui")]
+        {
+            lane_detector(&hough_lines, frame.cols() as f32, &frame)
+                .context("Lane detection failed")?;
+        }
+        #[cfg(not(feature = "gui"))]
+        {
+            lane_detector(&hough_lines, frame.cols() as f32).context("Lane detection failed")?;
         }
     }
 
