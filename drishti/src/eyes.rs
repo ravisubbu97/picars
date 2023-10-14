@@ -297,9 +297,16 @@ pub fn cv_example_vid() -> Result<()> {
             Point::new(0, 0),
         )?;
 
+        let trapezion_frame = frame.clone();
         //bit-wise and to the original image
         let mut trapeziod = Mat::default();
-        core::bitwise_and(&frame, &frame, &mut trapeziod, &mask2)?;
+        core::bitwise_and(&trapezion_frame, &trapezion_frame, &mut trapeziod, &mask2)?;
+
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow("trapeziodal_frame", &trapeziod)?;
+            highgui::wait_key(WAIT_MILLIS)?;
+        }
 
         let hough_lines = probabilistic_hough(&edges).context("Standard Hough Transfrom failed")?;
         println!("LINES: {:?}", hough_lines);
