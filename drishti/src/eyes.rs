@@ -267,12 +267,12 @@ pub fn cv_example_vid() -> Result<()> {
             highgui::imshow(window, &frame)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
-        imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
-            .context("BGR2GRAY conversion failed")?;
+        // imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
+        //     .context("BGR2GRAY conversion failed")?;
 
-        let mut edges = Mat::default();
-        imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
-            .context("Canny Algorithm failed")?;
+        // let mut edges = Mat::default();
+        // imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
+        //     .context("Canny Algorithm failed")?;
 
         // Create an trapeziodal black mask for lane detection with the same size as the input image
         let mut mask2 =
@@ -307,6 +307,14 @@ pub fn cv_example_vid() -> Result<()> {
             highgui::imshow("trapeziodal_frame", &trapeziod)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
+
+        // trying trapezoidal image for hough lines
+        imgproc::cvt_color(&trapeziod, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
+            .context("BGR2GRAY conversion failed")?;
+
+        let mut edges = Mat::default();
+        imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
+            .context("Canny Algorithm failed")?;
 
         let hough_lines = probabilistic_hough(&edges).context("Standard Hough Transfrom failed")?;
         println!("LINES: {:?}", hough_lines);
