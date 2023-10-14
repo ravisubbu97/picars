@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, CV_8UC1},
+    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, CV_8UC1, LINES},
     imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
@@ -274,6 +274,33 @@ pub fn cv_example_vid() -> Result<()> {
         imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
             .context("Canny Algorithm failed")?;
 
+        // Create an trapeziodal black mask for lane detection with the same size as the input image
+        let mut mask2 =
+            Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
+
+        // points for trapeziod
+        let points = [
+            Point::new(50, 100),
+            Point::new(250, 100),
+            Point::new(200, 300),
+            Point::new(100, 300),
+        ];
+
+        let roi_poly = Mat::from_slice(&points)?;
+        // filling the trapeziod with white color
+        imgproc::fill_poly(
+            &mut mask2,
+            &roi_poly,
+            Scalar::new(255.0, 255.0, 255.0, 255.0),
+            LINES,
+            0,
+            Point::new(0, 0),
+        )?;
+
+        //bit-wise and to the original image
+        let mut trapeziod = Mat::default();
+        core::bitwise_and(&frame, &frame, &mut trapeziod, &mask2)?;
+
         let hough_lines = probabilistic_hough(&edges).context("Standard Hough Transfrom failed")?;
         println!("LINES: {:?}", hough_lines);
 
@@ -281,7 +308,7 @@ pub fn cv_example_vid() -> Result<()> {
 
         println!("number of circles detected{}", circles.len());
 
-        // Create an empty black mask with the same size as the input image
+        // Create an empty black mask for circle detection with the same size as the input image
         let mut mask =
             Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
 
