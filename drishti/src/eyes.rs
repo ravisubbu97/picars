@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, CV_8UC1},
+    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, CV_8UC1, LINES},
     imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
@@ -82,15 +82,7 @@ pub fn probabilistic_hough(edges: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     let mut hough_lines = Mat::default();
 
     imgproc::cvt_color(edges, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
-    imgproc::hough_lines_p(
-        edges,
-        &mut p_lines,
-        1.,
-        PI / 180.,
-        HOUGH_THRESHOLD,
-        30.,
-        10.,
-    )?;
+    imgproc::hough_lines_p(edges, &mut p_lines, 1., PI / 180., HOUGH_THRESHOLD, 30., 3.)?;
 
     #[cfg(feature = "gui")]
     {
@@ -267,7 +259,49 @@ pub fn cv_example_vid() -> Result<()> {
             highgui::imshow(window, &frame)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
-        imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
+        // imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
+        //     .context("BGR2GRAY conversion failed")?;
+
+        // let mut edges = Mat::default();
+        // imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
+        //     .context("Canny Algorithm failed")?;
+
+        // Create an trapeziodal black mask for lane detection with the same size as the input image
+        let mut mask2 =
+            Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
+
+        // points for trapeziod
+        let points = [
+            Point::new(200, 180),
+            Point::new(400, 180),
+            Point::new(850, 350),
+            Point::new(-50, 350),
+        ];
+
+        let roi_poly = Mat::from_slice(&points)?;
+        // filling the trapeziod with white color
+        imgproc::fill_poly(
+            &mut mask2,
+            &roi_poly,
+            Scalar::new(255.0, 255.0, 255.0, 255.0),
+            LINES,
+            0,
+            Point::new(0, 0),
+        )?;
+
+        let trapezion_frame = frame.clone();
+        //bit-wise and to the original image
+        let mut trapeziod = Mat::default();
+        core::bitwise_and(&trapezion_frame, &trapezion_frame, &mut trapeziod, &mask2)?;
+
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow("trapeziodal_frame", &trapeziod)?;
+            highgui::wait_key(WAIT_MILLIS)?;
+        }
+
+        // trying trapezoidal image for hough lines
+        imgproc::cvt_color(&trapeziod, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
             .context("BGR2GRAY conversion failed")?;
 
         let mut edges = Mat::default();
@@ -281,7 +315,7 @@ pub fn cv_example_vid() -> Result<()> {
 
         println!("number of circles detected{}", circles.len());
 
-        // Create an empty black mask with the same size as the input image
+        // Create an empty black mask for circle detection with the same size as the input image
         let mut mask =
             Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
 
@@ -369,12 +403,12 @@ pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3f> {
         &input_image,            // Input grayscale image
         &mut circles,            // Output vector of circles (x, y, radius)
         imgproc::HOUGH_GRADIENT, // Detection method
-        1.0,   // Inverse ratio of the accumulator resolution to the image resolution
-        50.0,  // Minimum distance between detected centers
-        150.0, // Canny edge detection threshold
-        100.0, // Accumulator threshold for circle detection
-        50,    // Minimum circle radius
-        100,   // Maximum circle radius
+        30.0, // Inverse ratio of the accumulator resolution to the image resolution
+        0.5,  // Minimum distance between detected centers
+        2.5,  // Canny edge detection threshold
+        5.0,  // Accumulator threshold for circle detection
+        0,    // Minimum circle radius
+        300,  // Maximum circle radius
     )?;
 
     Ok(circles)
