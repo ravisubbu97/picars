@@ -410,12 +410,12 @@ pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3f> {
         &input_image,            // Input grayscale image
         &mut circles,            // Output vector of circles (x, y, radius)
         imgproc::HOUGH_GRADIENT, // Detection method
-        30.0, // Inverse ratio of the accumulator resolution to the image resolution
-        0.5,  // Minimum distance between detected centers
-        2.5,  // Canny edge detection threshold
-        5.0,  // Accumulator threshold for circle detection
-        0,    // Minimum circle radius
-        300,  // Maximum circle radius
+        1.0,   // Inverse ratio of the accumulator resolution to the image resolution
+        5.0,   // Minimum distance between detected centers
+        150.0, // Canny edge detection threshold
+        0.9,   // Accumulator threshold for circle detection
+        0,     // Minimum circle radius
+        200,   // Maximum circle radius
     )?;
 
     Ok(circles)
