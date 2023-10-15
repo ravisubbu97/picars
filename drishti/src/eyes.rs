@@ -82,15 +82,7 @@ pub fn probabilistic_hough(edges: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     let mut hough_lines = Mat::default();
 
     imgproc::cvt_color(edges, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
-    imgproc::hough_lines_p(
-        edges,
-        &mut p_lines,
-        1.,
-        PI / 180.,
-        HOUGH_THRESHOLD,
-        30.,
-        10.,
-    )?;
+    imgproc::hough_lines_p(edges, &mut p_lines, 1., PI / 180., HOUGH_THRESHOLD, 30., 3.)?;
 
     #[cfg(feature = "gui")]
     {
@@ -280,10 +272,10 @@ pub fn cv_example_vid() -> Result<()> {
 
         // points for trapeziod
         let points = [
-            Point::new(50, 100),
-            Point::new(250, 100),
-            Point::new(200, 300),
-            Point::new(100, 300),
+            Point::new(200, 180),
+            Point::new(400, 180),
+            Point::new(850, 350),
+            Point::new(-50, 350),
         ];
 
         let roi_poly = Mat::from_slice(&points)?;
@@ -411,12 +403,12 @@ pub fn hough_circles(input_image: &Mat) -> Result<VectorOfVec3f> {
         &input_image,            // Input grayscale image
         &mut circles,            // Output vector of circles (x, y, radius)
         imgproc::HOUGH_GRADIENT, // Detection method
-        1.0,   // Inverse ratio of the accumulator resolution to the image resolution
-        50.0,  // Minimum distance between detected centers
-        150.0, // Canny edge detection threshold
-        100.0, // Accumulator threshold for circle detection
-        50,    // Minimum circle radius
-        100,   // Maximum circle radius
+        30.0, // Inverse ratio of the accumulator resolution to the image resolution
+        0.5,  // Minimum distance between detected centers
+        2.5,  // Canny edge detection threshold
+        5.0,  // Accumulator threshold for circle detection
+        0,    // Minimum circle radius
+        300,  // Maximum circle radius
     )?;
 
     Ok(circles)
