@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, CV_8UC1, LINES},
+    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT, CV_8UC1, LINES},
     imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
@@ -249,8 +249,6 @@ pub fn cv_example_vid() -> Result<()> {
     }
 
     let mut frame = Mat::default();
-    let mut src_gray = Mat::default();
-
     cam.read(&mut frame).context("unable to capture frame")?;
 
     if frame.size()?.width > 0 {
@@ -259,12 +257,6 @@ pub fn cv_example_vid() -> Result<()> {
             highgui::imshow(window, &frame)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
-        // imgproc::cvt_color(&frame, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
-        //     .context("BGR2GRAY conversion failed")?;
-
-        // let mut edges = Mat::default();
-        // imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
-        //     .context("Canny Algorithm failed")?;
 
         // Create an trapeziodal black mask for lane detection with the same size as the input image
         let mut mask2 =
@@ -301,17 +293,32 @@ pub fn cv_example_vid() -> Result<()> {
         }
 
         // trying trapezoidal image for hough lines
+        let mut src_gray = Mat::default();
         imgproc::cvt_color(&trapeziod, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
             .context("BGR2GRAY conversion failed")?;
+        // Apply Gaussian blur to reduce noise and improve circle detection
+        let mut src_blurred = Mat::default();
+        imgproc::gaussian_blur(
+            &src_gray,
+            &mut src_blurred,
+            core::Size {
+                width: 3,
+                height: 3,
+            },
+            2.0,
+            2.0,
+            BORDER_DEFAULT,
+        )
+        .context("Gaussian filter failed")?;
 
         let mut edges = Mat::default();
-        imgproc::canny(&src_gray, &mut edges, 50., 200., 3, false)
+        imgproc::canny(&src_blurred, &mut edges, 50., 200., 3, false)
             .context("Canny Algorithm failed")?;
 
         let hough_lines = probabilistic_hough(&edges).context("Standard Hough Transfrom failed")?;
         println!("LINES: {:?}", hough_lines);
 
-        let circles = hough_circles(&src_gray).context("circles are not created")?; // giving gray scale image to hough circles function
+        let circles = hough_circles(&src_blurred).context("circles are not created")?; // giving gray scale image to hough circles function
 
         println!("number of circles detected{}", circles.len());
 
