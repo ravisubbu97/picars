@@ -27,13 +27,13 @@ const PROBABILISTIC_NAME: &str = "Probabilistic Hough Lines Demo";
 
 const HOUGH_THRESHOLD: i32 = 50;
 
-pub fn standard_hough(edges: &Mat) -> Result<Vector<VecN<f32, 2>>> {
+pub fn standard_hough(canny_img: &Mat) -> Result<Vector<VecN<f32, 2>>> {
     let mut s_lines = VectorOfVec2f::new();
     let mut hough_lines = Mat::default();
 
-    imgproc::cvt_color(edges, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
+    imgproc::cvt_color(canny_img, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
     imgproc::hough_lines(
-        edges,
+        canny_img,
         &mut s_lines,
         1.,
         PI / 180.,
@@ -77,12 +77,20 @@ pub fn standard_hough(edges: &Mat) -> Result<Vector<VecN<f32, 2>>> {
     Ok(s_lines)
 }
 
-pub fn probabilistic_hough(edges: &Mat) -> Result<Vector<VecN<i32, 4>>> {
+pub fn probabilistic_hough(canny_img: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     let mut p_lines = VectorOfVec4i::new();
     let mut hough_lines = Mat::default();
 
-    imgproc::cvt_color(edges, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
-    imgproc::hough_lines_p(edges, &mut p_lines, 1., PI / 180., HOUGH_THRESHOLD, 30., 3.)?;
+    imgproc::cvt_color(canny_img, &mut hough_lines, imgproc::COLOR_GRAY2BGR, 0)?;
+    imgproc::hough_lines_p(
+        canny_img,
+        &mut p_lines,
+        1.,
+        PI / 180.,
+        HOUGH_THRESHOLD,
+        30.,
+        3.,
+    )?;
 
     #[cfg(feature = "gui")]
     {
@@ -237,10 +245,8 @@ pub fn camera_backends() -> opencv::Result<core::Vector<VideoCaptureAPIs>> {
 
 pub fn cv_example_vid() -> Result<()> {
     #[cfg(feature = "gui")]
-    let window = "video capture";
-    #[cfg(feature = "gui")]
     {
-        highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+        highgui::named_window("video capture", highgui::WINDOW_AUTOSIZE)?;
     }
     let mut cam = VideoCapture::new(0, videoio::CAP_V4L2).context("unable to create camera")?;
     let opened = VideoCapture::is_opened(&cam).context("unable to open camera")?;
@@ -248,21 +254,26 @@ pub fn cv_example_vid() -> Result<()> {
         panic!("Unable to open default camera!");
     }
 
-    let mut frame = Mat::default();
-    cam.read(&mut frame).context("unable to capture frame")?;
+    let mut frame_img = Mat::default();
+    cam.read(&mut frame_img)
+        .context("unable to capture frame")?;
 
-    if frame.size()?.width > 0 {
+    if frame_img.size()?.width > 0 {
         #[cfg(feature = "gui")]
         {
-            highgui::imshow(window, &frame)?;
+            highgui::imshow("frame image", &frame_img)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
 
         // Create an trapeziodal black mask for lane detection with the same size as the input image
-        let mut mask2 =
-            Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
+        let mut trapezoid_mask = Mat::new_rows_cols_with_default(
+            frame_img.rows(),
+            frame_img.cols(),
+            CV_8UC1,
+            Scalar::all(0.0),
+        )?;
 
-        // points for trapeziod
+        // points for trapezoid
         let points = [
             Point::new(200, 180),
             Point::new(400, 180),
@@ -271,9 +282,9 @@ pub fn cv_example_vid() -> Result<()> {
         ];
 
         let roi_poly = Mat::from_slice(&points)?;
-        // filling the trapeziod with white color
+        // filling the trapezoid with white color
         imgproc::fill_poly(
-            &mut mask2,
+            &mut trapezoid_mask,
             &roi_poly,
             Scalar::new(255.0, 255.0, 255.0, 255.0),
             LINES,
@@ -281,26 +292,32 @@ pub fn cv_example_vid() -> Result<()> {
             Point::new(0, 0),
         )?;
 
-        let trapezion_frame = frame.clone();
         //bit-wise and to the original image
-        let mut trapeziod = Mat::default();
-        core::bitwise_and(&trapezion_frame, &trapezion_frame, &mut trapeziod, &mask2)?;
+        let mut trapezoid_img = Mat::default();
+        core::bitwise_and(&frame_img, &frame_img, &mut trapezoid_img, &trapezoid_mask)?;
 
         #[cfg(feature = "gui")]
         {
-            highgui::imshow("trapeziodal_frame", &trapeziod)?;
+            highgui::imshow("trapeziodal image", &trapezoid_img)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
 
         // trying trapezoidal image for hough lines
-        let mut src_gray = Mat::default();
-        imgproc::cvt_color(&trapeziod, &mut src_gray, imgproc::COLOR_BGR2GRAY, 0)
+        let mut gray_img = Mat::default();
+        imgproc::cvt_color(&trapezoid_img, &mut gray_img, imgproc::COLOR_BGR2GRAY, 0)
             .context("BGR2GRAY conversion failed")?;
+
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow("gray image", &gray_img)?;
+            highgui::wait_key(WAIT_MILLIS)?;
+        }
+
         // Apply Gaussian blur to reduce noise and improve circle detection
-        let mut src_blurred = Mat::default();
+        let mut blurr_img = Mat::default();
         imgproc::gaussian_blur(
-            &src_gray,
-            &mut src_blurred,
+            &gray_img,
+            &mut blurr_img,
             core::Size {
                 width: 3,
                 height: 3,
@@ -311,21 +328,42 @@ pub fn cv_example_vid() -> Result<()> {
         )
         .context("Gaussian filter failed")?;
 
-        let mut edges = Mat::default();
-        imgproc::canny(&src_blurred, &mut edges, 50., 200., 3, false)
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow("blurr image", &blurr_img)?;
+            highgui::wait_key(WAIT_MILLIS)?;
+        }
+
+        let mut canny_img = Mat::default();
+        imgproc::canny(&blurr_img, &mut canny_img, 50., 200., 3, false)
             .context("Canny Algorithm failed")?;
 
-        let hough_lines = probabilistic_hough(&edges).context("Standard Hough Transfrom failed")?;
+        #[cfg(feature = "gui")]
+        {
+            highgui::imshow("canny image", &canny_img)?;
+            highgui::wait_key(WAIT_MILLIS)?;
+        }
+
+        let hough_lines =
+            probabilistic_hough(&canny_img).context("Standard Hough Transfrom failed")?;
         println!("LINES: {:?}", hough_lines);
 
-        let circles = hough_circles(&src_blurred).context("circles are not created")?; // giving gray scale image to hough circles function
+        let circles = hough_circles(&blurr_img).context("circles are not created")?; // giving gray scale image to hough circles function
 
         println!("number of circles detected{}", circles.len());
 
-        // Create an empty black mask for circle detection with the same size as the input image
-        let mut mask =
-            Mat::new_rows_cols_with_default(frame.rows(), frame.cols(), CV_8UC1, Scalar::all(0.0))?;
+        // Create a color image for circle detection with the same size as the input image
+        let mut color_img = Mat::default();
+        imgproc::cvt_color(&blurr_img, &mut color_img, imgproc::COLOR_GRAY2BGR, 0)
+            .context("GRAY2BGR conversion failed")?;
 
+        // Create an empty black mask for circle detection with the same size size as the input image
+        let mut circle_mask = Mat::new_rows_cols_with_default(
+            frame_img.rows(),
+            frame_img.cols(),
+            CV_8UC1,
+            Scalar::all(0.0),
+        )?;
         // Draw the detected circles on the mask
         for circle in circles.iter() {
             let center = core::Point {
@@ -333,8 +371,9 @@ pub fn cv_example_vid() -> Result<()> {
                 y: circle[1] as i32,
             };
             let radius = circle[2] as i32;
+            // draw the outer circle
             imgproc::circle(
-                &mut mask,
+                &mut circle_mask,
                 center,
                 radius,
                 core::Scalar::all(255.0),
@@ -342,20 +381,29 @@ pub fn cv_example_vid() -> Result<()> {
                 imgproc::LINE_AA,
                 0,
             )?;
+            // // draw the center of the circle
+            // imgproc::circle(
+            //     &mut circle_mask,
+            //     center,
+            //     2,
+            //     Scalar::new(0.0, 0.0, 255.0, 0.0),
+            //     -1,
+            //     imgproc::LINE_AA,
+            //     0,
+            // )?;
         }
 
         // Create a result image by bitwise AND-ing the input image with the mask
-        let mut only_circles = Mat::default();
-        core::bitwise_and(&frame, &frame, &mut only_circles, &mask)?;
-
+        let mut circle_image = Mat::default();
+        core::bitwise_and(&frame_img, &frame_img, &mut circle_image, &circle_mask)?;
         #[cfg(feature = "gui")]
         {
-            highgui::imshow("circles", &only_circles)?;
+            highgui::imshow("circles", &circle_image)?;
             highgui::wait_key(WAIT_MILLIS)?;
         }
 
         let green_light =
-            detect_green_light(&only_circles).context("Green light detection failed")?;
+            detect_green_light(&circle_image).context("Green light detection failed")?;
 
         if green_light {
             println!("🟢 🟩 💚 [GREEN]");
@@ -365,12 +413,13 @@ pub fn cv_example_vid() -> Result<()> {
 
         #[cfg(feature = "gui")]
         {
-            lane_detector(&hough_lines, frame.cols() as f32, &frame)
+            lane_detector(&hough_lines, frame_img.cols() as f32, &frame_img)
                 .context("Lane detection failed")?;
         }
         #[cfg(not(feature = "gui"))]
         {
-            lane_detector(&hough_lines, frame.cols() as f32).context("Lane detection failed")?;
+            lane_detector(&hough_lines, frame_img.cols() as f32)
+                .context("Lane detection failed")?;
         }
     }
 
@@ -384,14 +433,14 @@ pub fn cv_example_photo(img_path: &str, cap_img_path: &str, edge_img_path: &str)
     let strt = core::get_tick_count()? as f64;
     let image =
         imgcodecs::imread(img_path, imgcodecs::IMREAD_GRAYSCALE).context("Image reading failed")?;
-    let mut edges = Mat::default();
+    let mut canny_img = Mat::default();
     let params = core::Vector::new();
 
-    imgproc::canny(&image, &mut edges, 50.0, 150.0, 3, false).context("Canny algo failed")?;
+    imgproc::canny(&image, &mut canny_img, 50.0, 150.0, 3, false).context("Canny algo failed")?;
     let time = (core::get_tick_count()? as f64 - strt) / core::get_tick_frequency()?;
 
     imgcodecs::imwrite(cap_img_path, &image, &params).context("Image saving failed")?;
-    imgcodecs::imwrite(edge_img_path, &edges, &params).context("Image saving failed")?;
+    imgcodecs::imwrite(edge_img_path, &canny_img, &params).context("Image saving failed")?;
 
     Ok(time)
 }
