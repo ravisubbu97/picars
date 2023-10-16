@@ -352,11 +352,6 @@ pub fn cv_example_vid() -> Result<()> {
 
         println!("number of circles detected{}", circles.len());
 
-        // Create a color image for circle detection with the same size as the input image
-        let mut color_img = Mat::default();
-        imgproc::cvt_color(&blurr_img, &mut color_img, imgproc::COLOR_GRAY2BGR, 0)
-            .context("GRAY2BGR conversion failed")?;
-
         // Create an empty black mask for circle detection with the same size size as the input image
         let mut circle_mask = Mat::new_rows_cols_with_default(
             frame_img.rows(),
