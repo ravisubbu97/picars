@@ -95,12 +95,21 @@ pub fn probabilistic_hough(canny_img: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     #[cfg(feature = "gui")]
     {
         for l in p_lines.iter() {
+            imgproc::polylines(
+                &mut hough_lines,
+                &l,
+                true,
+                Scalar::new(0., 255., 0., 0.),
+                2,
+                imgproc::LINE_AA,
+                0,
+            )?;
             imgproc::line(
                 &mut hough_lines,
                 Point::new(l[0], l[1]),
                 Point::new(l[2], l[3]),
                 Scalar::new(255., 0., 0., 0.),
-                3,
+                2,
                 imgproc::LINE_AA,
                 0,
             )?;
