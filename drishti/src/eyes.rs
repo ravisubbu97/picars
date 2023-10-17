@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Mat, Point, Point2f, Scalar, VecN, Vector, BORDER_DEFAULT, CV_8UC1, LINES},
+    core::{self, Mat, Point, Scalar, VecN, Vector, BORDER_DEFAULT, CV_8UC1, LINES},
     imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
@@ -16,10 +16,11 @@ use opencv::{
 };
 
 #[cfg(feature = "gui")]
+use opencv::core::Point2f;
+#[cfg(feature = "gui")]
 use opencv::highgui;
 
-#[cfg(feature = "gui")]
-const WAIT_MILLIS: i32 = 1000;
+pub const WAIT_MILLIS: i32 = 1000;
 #[cfg(feature = "gui")]
 const STANDARD_NAME: &str = "Standard Hough Lines Demo";
 #[cfg(feature = "gui")]
@@ -95,15 +96,15 @@ pub fn probabilistic_hough(canny_img: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     #[cfg(feature = "gui")]
     {
         for l in p_lines.iter() {
-            imgproc::polylines(
-                &mut hough_lines,
-                &l,
-                true,
-                Scalar::new(0., 255., 0., 0.),
-                2,
-                imgproc::LINE_AA,
-                0,
-            )?;
+            // imgproc::polylines(
+            //     &mut hough_lines,
+            //     &l,
+            //     true,
+            //     Scalar::new(0., 255., 0., 0.),
+            //     2,
+            //     imgproc::LINE_AA,
+            //     0,
+            // )?;
             imgproc::line(
                 &mut hough_lines,
                 Point::new(l[0], l[1]),
