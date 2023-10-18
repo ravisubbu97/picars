@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 
-use drishti::eyes::cv_example_vid;
+use drishti::lane::warp_example;
 
 fn main() -> Result<()> {
-    cv_example_vid().context("[ERROR] Video capture failed")?;
+    warp_example().context("[ERROR] warp example failed")?;
 
     Ok(())
 }
