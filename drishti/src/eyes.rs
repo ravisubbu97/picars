@@ -461,10 +461,15 @@ pub fn cv_example_vid() -> Result<()> {
         } else {
             println!("🔴 🟥 😡 [RED]");
         }
-
+        let (horizontal, vertical, others) = line_categorization(
+            &hough_lines,
+            0.01,
+            1000.,
+            /*curved_slope_range,*/
+        );
         #[cfg(feature = "gui")]
         {
-            lane_detector(&hough_lines, frame_img.cols() as f32, &frame_img)
+            lane_detector(&vertical, frame_img.cols() as f32, &frame_img)
                 .context("Lane detection failed")?;
         }
         #[cfg(not(feature = "gui"))]
