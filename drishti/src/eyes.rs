@@ -146,6 +146,52 @@ fn calculate_lane_center(lines: &VectorOfVec4i, image_width: f32) -> opencv::Res
     Ok((lane_center_x, line_count))
 }
 
+fn line_categorization(
+    lines: &VectorOfVec4i,
+    horizontal_threshold: f32,
+    vertical_threshold: f32,
+    /*curved_slope_range: (f32, f32),*/
+) -> (
+    VectorOfVec4i,
+    VectorOfVec4i,
+    /*VectorOfVec4i,*/ VectorOfVec4i,
+) {
+    let mut horizontal_lines = VectorOfVec4i::new();
+    let mut vertical_lines = VectorOfVec4i::new();
+    /*let mut curved_lines = Vec::new();*/
+    let mut other_lines = VectorOfVec4i::new();
+
+    for line in lines.iter() {
+        let x1 = line[0] as f32;
+        let y1 = line[1] as f32;
+        let x2 = line[2] as f32;
+        let y2 = line[3] as f32;
+
+        // Calculate the slope
+        let slope = if (x2 - x1).abs() > f32::EPSILON {
+            (y2 - y1) / (x2 - x1)
+        } else {
+            std::f32::INFINITY // Undefined slope (vertical line)
+        };
+
+        // Categorize lines based on slope using match
+        match slope.abs() {
+            s if s < horizontal_threshold => horizontal_lines.push(line),
+            s if s.is_infinite() || s < vertical_threshold => vertical_lines.push(line),
+            /*s if s >= curved_slope_range.0 && s <= curved_slope_range.1 => {
+                curved_lines.push(line)
+            }*/
+            _ => other_lines.push(line),
+        }
+    }
+
+    (
+        horizontal_lines,
+        vertical_lines,
+        /*curved_lines,*/ other_lines,
+    )
+}
+
 #[cfg(feature = "gui")]
 fn lane_detector(lines: &VectorOfVec4i, image_width: f32, image: &Mat) -> Result<()> {
     // Calculate the lane center
@@ -418,13 +464,18 @@ pub fn cv_example_vid() -> Result<()> {
 
         #[cfg(feature = "gui")]
         {
-            lane_detector(&hough_lines, frame_img.cols() as f32, &frame_img)
+            let (horizontal, vertical, others) = line_categorization(
+                &hough_lines,
+                0.01,
+                1000.,
+                /*curved_slope_range,*/
+            );
+            lane_detector(&vertical, frame_img.cols() as f32, &frame_img)
                 .context("Lane detection failed")?;
         }
         #[cfg(not(feature = "gui"))]
         {
-            lane_detector(&hough_lines, frame_img.cols() as f32)
-                .context("Lane detection failed")?;
+            lane_detector(&vertical, frame_img.cols() as f32).context("Lane detection failed")?;
         }
     }
 
