@@ -464,7 +464,7 @@ pub fn cv_example_vid() -> Result<()> {
 
         #[cfg(feature = "gui")]
         {
-            lane_detector(&hough_lines, frame.cols() as f32, &frame)
+            lane_detector(&hough_lines, frame_img.cols() as f32, &frame_img)
                 .context("Lane detection failed")?;
         }
         #[cfg(not(feature = "gui"))]
