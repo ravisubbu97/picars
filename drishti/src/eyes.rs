@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use opencv::{
-    core::{self, Mat, Point, Scalar, VecN, Vector, BORDER_DEFAULT, CV_8UC1, LINES},
+    core::{self, Mat, Point, Scalar, Vec4i, VecN, Vector, BORDER_DEFAULT, CV_8UC1, LINES},
     imgcodecs, imgproc,
     prelude::*,
     types::{VectorOfVec2f, VectorOfVec3f, VectorOfVec4i},
@@ -122,28 +122,34 @@ pub fn probabilistic_hough(canny_img: &Mat) -> Result<Vector<VecN<i32, 4>>> {
     Ok(p_lines)
 }
 
-fn calculate_lane_center(lines: &VectorOfVec4i, image_width: f32) -> opencv::Result<(f32, f32)> {
+fn calculate_lane_center(
+    v_lines: &VectorOfVec4i,
+    h_lines: &VectorOfVec4i,
+    image_width: f32,
+) -> opencv::Result<(f32, Vec4i, Vec4i)> {
     // Calculate the lane center as the average of x-coordinates of the detected lines
     // TODO: Line count should be 2 (maybe nearest two ?), bcz we need to detect only one lane
     let mut lane_center_x: f32 = 0.0;
-    let mut line_count: f32 = 0.0;
+    let mut nearest_left = VecN([0, 0, 0, 0]);
+    let mut left_dis: i32 = 320;
+    let mut nearest_right = VecN([0, 0, 0, 0]);
+    let mut right_dis: i32 = 320;
 
-    for line in lines.iter() {
-        let x1 = line[0] as f32;
-        let x2 = line[2] as f32;
-
-        lane_center_x += (x1 + x2) / 2.0;
-        line_count += 1.0;
+    // figuring out nearest right and nearest left lines
+    for line in v_lines.iter() {
+        let x1 = line[0];
+        if ((x1 - 320) < 0) && ((x1 - 320).abs() < left_dis) {
+            nearest_left = line;
+            left_dis = (x1 - 320).abs();
+        } else if ((x1 - 320) > 0) && ((x1 - 320).abs() < right_dis) {
+            nearest_right = line;
+            right_dis = (x1 - 320).abs();
+        }
     }
 
-    if line_count > 0.0 {
-        lane_center_x /= line_count;
-    }
+    lane_center_x = (nearest_left[0] + nearest_right[0]) as f32 / 2.0;
 
-    // Convert lane_center_x to be relative to the image width (0.0 = left, 1.0 = right)
-    lane_center_x /= image_width;
-
-    Ok((lane_center_x, line_count))
+    Ok((lane_center_x, nearest_left, nearest_right))
 }
 
 fn line_categorization(
@@ -193,16 +199,22 @@ fn line_categorization(
 }
 
 #[cfg(feature = "gui")]
-fn lane_detector(lines: &VectorOfVec4i, image_width: f32, image: &Mat) -> Result<()> {
+fn lane_detector(
+    v_lines: &VectorOfVec4i,
+    h_lines: &VectorOfVec4i,
+    image_width: f32,
+    image: &Mat,
+) -> Result<()> {
     // Calculate the lane center
-    let (lane_center_x, line_count) = calculate_lane_center(lines, image_width)?;
+    let (lane_center_x, nearest_left, nearest_right) =
+        calculate_lane_center(v_lines, h_lines, image_width)?;
     // image centre is always 0.5 ?
-    let image_center_x = 0.5;
+    let image_center_x = 320.0;
     // Calculate the deviation from the lane center
     let deviation = image_center_x - lane_center_x;
     println!(
-        "[lane_center_x: {}] [line_count: {}] [image_center_x: {}] [deviation: {}]",
-        lane_center_x, line_count, image_center_x, deviation
+        "[lane_center_x: {}] [nearest_left: {:?}] [nearest_right: {:?}] [image_center_x: {}] [deviation: {}]",
+        lane_center_x, nearest_left, nearest_right, image_center_x, deviation
     );
 
     // Example steering decision based on the deviation
@@ -216,7 +228,7 @@ fn lane_detector(lines: &VectorOfVec4i, image_width: f32, image: &Mat) -> Result
 
     // Draw detected lines and lane center on the original image
     let mut result = image.clone();
-    for line in lines.iter() {
+    for line in [nearest_left, nearest_right].iter() {
         let pt1 = core::Point {
             x: line[0],
             y: line[1],
@@ -469,7 +481,7 @@ pub fn cv_example_vid() -> Result<()> {
         );
         #[cfg(feature = "gui")]
         {
-            lane_detector(&vertical, frame_img.cols() as f32, &frame_img)
+            lane_detector(&vertical, &horizontal, frame_img.cols() as f32, &frame_img)
                 .context("Lane detection failed")?;
         }
         #[cfg(not(feature = "gui"))]
