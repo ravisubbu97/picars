@@ -1,10 +1,12 @@
+use std::ops::Add;
+
 use anyhow::{Context, Result};
 
 use opencv::{
     core::{self, Point2f, Scalar, BORDER_DEFAULT, DECOMP_LU},
     imgcodecs, imgproc,
     prelude::*,
-    types::VectorOfPoint2f,
+    types::{VectorOfMat, VectorOfPoint2f},
     videoio::{self, VideoCapture},
 };
 
@@ -13,14 +15,100 @@ use crate::eyes::WAIT_MILLIS;
 #[cfg(feature = "gui")]
 use opencv::highgui;
 
+extern crate opencv;
+
+use opencv::core::TermCriteria;
+use opencv::core::KMEANS_RANDOM_CENTERS;
+
+fn create_bar(
+    height: i32,
+    width: i32,
+    color: core::Scalar,
+) -> Result<(core::Mat, core::Vec3b), opencv::Error> {
+    let bar = core::Mat::new_rows_cols_with_default(height, width, core::CV_8UC3, color)?;
+    let color_arr = core::Vec3b::all(color[0] as u8);
+
+    Ok((bar, color_arr))
+}
+
+pub fn dominant_color(img: &Mat) -> Result<()> {
+    let (height, width) = {
+        let size = img.size()?;
+        (size.height, size.width)
+    };
+
+    let data = img.reshape(1, height * width)?;
+    let mut data_converted = Mat::default();
+    data.convert_to(&mut data_converted, core::CV_32FC1, 1.0, 0.0)?;
+
+    let criteria = TermCriteria::new(core::TermCriteria_Type::COUNT as i32, 10, 1.0)?;
+    let flags = KMEANS_RANDOM_CENTERS;
+    let mut labels = Mat::default();
+    let mut centers = Mat::default();
+    core::kmeans(
+        &data_converted,
+        3,
+        &mut labels,
+        criteria,
+        10,
+        flags,
+        &mut centers,
+    )?;
+
+    let font = imgproc::FONT_HERSHEY_SIMPLEX;
+    let mut bars = VectorOfMat::new();
+    let mut rgb_values = Vec::new();
+
+    for i in 0..centers.rows() {
+        let row = centers.at_row::<core::Vec3f>(i)?;
+        let (bar, rgb) = create_bar(
+            200,
+            200,
+            core::Scalar::new(row[0][0] as f64, row[0][1] as f64, row[0][2] as f64, 0.0),
+        )?;
+        bars.push(bar);
+        rgb_values.push(rgb);
+    }
+
+    let mut img_bar = Mat::default();
+    core::hconcat(&bars, &mut img_bar)?;
+
+    #[cfg(feature = "gui")]
+    {
+        for (index, row) in rgb_values.iter().enumerate() {
+            imgproc::put_text(
+                &mut img_bar,
+                &format!("{}. RGB: {:?}", index + 1, row),
+                core::Point {
+                    x: 5 + 200 * index as i32,
+                    y: 200 - 10,
+                },
+                font,
+                0.5,
+                Scalar::new(255.0, 0.0, 0.0, 0.0),
+                1,
+                imgproc::LINE_AA,
+                false,
+            )?;
+            println!("{}. RGB: {:?}", index + 1, row);
+        }
+        highgui::imshow("Image", &img)?;
+        highgui::imshow("Dominant colors", &img_bar)?;
+
+        highgui::wait_key(0)?;
+    }
+
+    Ok(())
+}
+
 pub fn white_thresholding(img: &Mat) -> Result<Mat> {
     // Change from BGR to HSV image
     let mut hsv_img = Mat::default();
     imgproc::cvt_color(&img, &mut hsv_img, imgproc::COLOR_BGR2HSV, 0)
         .context("COLOR_BGR2HSV conversion failed")?;
 
-    let lower_white = Scalar::new(85.0, 0.0, 0.0, 0.0);
-    let upper_white = Scalar::new(179.0, 160.0, 255.0, 0.0);
+    let lower_white = Scalar::new(0.0, 0.0, 0.0, 0.0);
+    let upper_white = Scalar::new(0.0, 0.0, 255.0, 0.0);
 
     let mut masked_white = Mat::default();
     core::in_range(&hsv_img, &lower_white, &upper_white, &mut masked_white)?;
