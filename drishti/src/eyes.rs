@@ -138,10 +138,13 @@ fn calculate_lane_center(
     // figuring out nearest right and nearest left lines
     for line in v_lines.iter() {
         let x1 = line[0];
-        if ((x1 - 320) < 0) && ((x1 - 320).abs() < left_dis) {
+        let x2 = line[1];
+        let y1 = line[2];
+        let y2 = line[3];
+        if ((x1 - 320) < 0) && ((x1 - 320).abs() < left_dis) && (x1 < x2) && (y1 > y2) {
             nearest_left = line;
             left_dis = (x1 - 320).abs();
-        } else if ((x1 - 320) > 0) && ((x1 - 320).abs() < right_dis) {
+        } else if ((x1 - 320) > 0) && ((x1 - 320).abs() < right_dis) && (x1 > x2) && (y1 > y2) {
             nearest_right = line;
             right_dis = (x1 - 320).abs();
         }
@@ -189,6 +192,7 @@ fn line_categorization(
             }*/
             _ => other_lines.push(line),
         }
+        println!("[slope: {}] [of line: {:?}]", slope, line)
     }
 
     (
