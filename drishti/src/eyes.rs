@@ -129,7 +129,6 @@ fn calculate_lane_center(
 ) -> opencv::Result<(f32, Vec4i, Vec4i)> {
     // Calculate the lane center as the average of x-coordinates of the detected lines
     // TODO: Line count should be 2 (maybe nearest two ?), bcz we need to detect only one lane
-    let mut lane_center_x: f32 = 0.0;
     let mut nearest_left = VecN([0, 0, 0, 0]);
     let mut left_dis: i32 = 320;
     let mut nearest_right = VecN([0, 0, 0, 0]);
@@ -150,7 +149,7 @@ fn calculate_lane_center(
         }
     }
 
-    lane_center_x = (nearest_left[0] + nearest_right[0]) as f32 / 2.0;
+    let lane_center_x = (nearest_left[0] + nearest_right[0]) as f32 / 2.0;
 
     Ok((lane_center_x, nearest_left, nearest_right))
 }

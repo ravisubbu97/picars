@@ -13,6 +13,32 @@ use crate::eyes::WAIT_MILLIS;
 #[cfg(feature = "gui")]
 use opencv::highgui;
 
+pub fn white_thresholding(img: &Mat) -> Result<Mat> {
+    // Change from BGR to HSV image
+    let mut hsv_img = Mat::default();
+    imgproc::cvt_color(&img, &mut hsv_img, imgproc::COLOR_BGR2HSV, 0)
+        .context("COLOR_BGR2HSV conversion failed")?;
+
+    let lower_white = Scalar::new(85.0, 0.0, 0.0, 0.0);
+    let upper_white = Scalar::new(179.0, 160.0, 255.0, 0.0);
+
+    let mut masked_white = Mat::default();
+    core::in_range(&hsv_img, &lower_white, &upper_white, &mut masked_white)?;
+
+    #[cfg(feature = "gui")]
+    {
+        // SAVE images
+        let params = core::Vector::new();
+        imgcodecs::imwrite("images/masked_white.jpg", &masked_white, &params)
+            .context("Image saving failed")?;
+
+        highgui::imshow("masked_white image", &masked_white)?;
+        highgui::wait_key(WAIT_MILLIS)?;
+    }
+
+    Ok(masked_white)
+}
+
 pub fn canny_edge_transform(img: &Mat) -> Result<Mat> {
     // Apply Gaussian blur to reduce noise
     let mut blurr_img = Mat::default();
@@ -124,6 +150,7 @@ pub fn warp_example() -> Result<()> {
         .context("unable to capture frame")?;
 
     if frame_img.size()?.width > 0 {
+        let masked_white = white_thresholding(&frame_img)?;
         let canny_img = canny_edge_transform(&frame_img)?;
         let _warped_img = warp_perspective_transform(&canny_img)?;
     }
@@ -145,10 +172,13 @@ mod tests {
         let filename = core::find_file(&filename, true, false)?;
         let img = imgcodecs::imread(&filename, imgcodecs::IMREAD_COLOR)?;
 
+        let masked_white = white_thresholding(&img)?;
         let canny_img = canny_edge_transform(&img)?;
         let warped_img = warp_perspective_transform(&canny_img)?;
         let params = core::Vector::new();
         imgcodecs::imwrite("images/warped_image_transform.jpg", &warped_img, &params)
+            .context("Image saving failed")?;
+        imgcodecs::imwrite("images/masked_white.jpg", &masked_white, &params)
             .context("Image saving failed")?;
 
         println!("Original img size: [{}:{}]", img.cols(), img.rows());
