@@ -1,59 +1,55 @@
 from .camera_geometry import CameraGeometry
-import numpy as np
-import cv2
-import torch
 
+import numpy as np
+import torch
+import torch.nn.functional as F
+from torchvision import transforms
 
 class LaneDetector():
-    def __init__(self, cam_geom=CameraGeometry(), model_path='./fastai_model.pth'):
-        self.cg = cam_geom
-        self.cut_v, self.grid = self.cg.precompute_grid()
-        if torch.cuda.is_available():
-            self.device = "cuda"
-            self.model = torch.load(model_path).to(self.device)
-        else:
-            self.model = torch.load(model_path, map_location=torch.device("cpu"))
-            self.device = "cpu"
+    def __init__(self, model_path="model.pth", *args, **kwargs):
+        self.cam_geom = CameraGeometry(self, *args, **kwargs)
+        self.cut_v, self.grid = self.cam_geom.precompute_grid()
+        self.model = torch.load(model_path, map_location=torch.device('cpu'))
         self.model.eval()
 
-    def read_imagefile_to_array(self, filename):
-        image = cv2.imread(filename)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        return image
+    def create_preprocessor(cv_image):
+        preprocess = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        # convert opencv output from BGR to RGB
+        image = cv_image[:, :, [2, 1, 0]]
+        input_tensor = preprocess(image)
+        input_batch = input_tensor.unsqueeze(0)
 
-    def detect_from_file(self, filename):
-        img_array = self.read_imagefile_to_array(filename)
-        return self.detect(img_array)
+        return input_batch
 
-    def _predict(self, img):
+    def predict(self, input_batch):
         with torch.no_grad():
-            image_tensor = img.transpose(2,0,1).astype('float32')/255
-            x_tensor = torch.from_numpy(image_tensor).to(self.device).unsqueeze(0)
-            model_output = torch.softmax(self.model.forward(x_tensor), dim=1).cpu().numpy()
-        return model_output
+            out = F.softmax(self.model(input_batch), dim=1)
+            background, left, right = out[0,0,:,:], out[0,1,:,:], out[0,2,:,:]
 
-    def detect(self, img_array):
-        model_output = self._predict(img_array)
-        background, left, right = model_output[0,0,:,:], model_output[0,1,:,:], model_output[0,2,:,:]
         return background, left, right
 
-    def fit_poly(self, probs):
+    def fit_poly(self, probs, prob_thresh=0.3):
         probs_flat = np.ravel(probs[self.cut_v:, :])
-        mask = probs_flat > 0.3
+        mask = probs_flat > prob_thresh
         if mask.sum() > 0:
             coeffs = np.polyfit(self.grid[:,0][mask], self.grid[:,1][mask], deg=3, w=probs_flat[mask])
         else:
             coeffs = np.array([0.,0.,0.,0.])
+
         return np.poly1d(coeffs)
 
-    def __call__(self, image):
-        if isinstance(image, str):
-            image = self.read_imagefile_to_array(image)
-        left_poly, right_poly, _, _ = self.get_fit_and_probs(image)
-        return left_poly, right_poly
-
-    def get_fit_and_probs(self, img):
-        _, left, right = self.detect(img)
+    def get_fit_and_probs(self, cv_image):
+        input_batch = self.create_preprocessor(cv_image)
+        _, left, right = self.predict(input_batch)
         left_poly = self.fit_poly(left)
         right_poly = self.fit_poly(right)
+
         return left_poly, right_poly, left, right
+
+    def __call__(self, cv_image):
+        left_poly, right_poly, _, _ = self.get_fit_and_probs(cv_image)
+
+        return left_poly, right_poly

@@ -7,6 +7,7 @@ def get_intrinsic_matrix(field_of_view_deg, image_width, image_height):
     alpha = (image_width / 2.0) / np.tan(field_of_view_rad / 2.)
     Cu = image_width / 2.0
     Cv = image_height / 2.0
+
     return np.array([[alpha, 0, Cu],
                      [0, alpha, Cv],
                      [0, 0, 1.0]])
@@ -18,8 +19,8 @@ def c(polyline_world, trafo_world_to_cam, K):
     pl_uv_cam = (proj_mat @ homvec).T
     u = pl_uv_cam[:,0] / pl_uv_cam[:,2]
     v = pl_uv_cam[:,1] / pl_uv_cam[:,2]
-    return np.stack((u,v)).T
 
+    return np.stack((u,v)).T
 
 class CameraGeometry(object):
     def __init__(self, height=1.3, yaw_deg=0, pitch_deg=-5, roll_deg=0, image_width=1024, image_height=512, field_of_view_deg=45):
@@ -63,14 +64,17 @@ class CameraGeometry(object):
         uv_hom = np.array([u,v,1])
         Kinv_uv_hom = self.inverse_intrinsic_matrix @ uv_hom
         denominator = self.road_normal_camframe.dot(Kinv_uv_hom)
+
         return self.height*Kinv_uv_hom/denominator
 
     def uv_to_roadXYZ_roadframe(self,u,v):
         r_camframe = self.uv_to_roadXYZ_camframe(u,v)
+
         return self.camframe_to_roadframe(r_camframe)
 
     def uv_to_roadXYZ_roadframe_iso8855(self,u,v):
         X,Y,Z = self.uv_to_roadXYZ_roadframe(u,v)
+
         return np.array([Z,-X,-Y]) # read book section on coordinate systems to understand this
 
     def precompute_grid(self,dist=60):
@@ -81,6 +85,7 @@ class CameraGeometry(object):
                 X,Y,Z= self.uv_to_roadXYZ_roadframe_iso8855(u,v)
                 xy.append(np.array([X,Y]))
         xy = np.array(xy)
+
         return cut_v, xy
 
     def compute_minimum_v(self, dist):
@@ -93,4 +98,5 @@ class CameraGeometry(object):
         uv_vec = self.intrinsic_matrix @ point_far_away_on_road[:3]
         uv_vec /= uv_vec[2]
         cut_v = uv_vec[1]
+
         return cut_v
