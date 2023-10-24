@@ -19,3 +19,6 @@ bin/
 
 # Ignore temp.ipynb
 python/temp.ipynb
+
+# Ignore pycache
+python/__pycache__/
