@@ -1,4 +1,4 @@
-from .camera_geometry import CameraGeometry
+from camera_geometry import CameraGeometry
 
 import numpy as np
 import torch
@@ -7,12 +7,12 @@ from torchvision import transforms
 
 class LaneDetector():
     def __init__(self, model_path="model.pth", *args, **kwargs):
-        self.cam_geom = CameraGeometry(self, *args, **kwargs)
+        self.cam_geom = CameraGeometry(*args, **kwargs)
         self.cut_v, self.grid = self.cam_geom.precompute_grid()
         self.model = torch.load(model_path, map_location=torch.device('cpu'))
         self.model.eval()
 
-    def create_preprocessor(cv_image):
+    def create_preprocessor(self, cv_image):
         preprocess = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),

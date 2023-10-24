@@ -1,4 +1,4 @@
-from .lane_detector import LaneDetector
+from lane_detector import LaneDetector
 
 import cv2
 import time
