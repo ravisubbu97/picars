@@ -25,8 +25,8 @@ def run_preds(vid_cap, ld, secs=10):
             print(f"[{frames_missed}]: failed to read frame")
             continue
 
-        left_poly, right_poly = ld(cv_image)
-        print(f"{left_poly.shape = } {right_poly.shape = }")
+        left_poly, right_poly, left, right = ld(cv_image)
+        print(f"{left_poly = } {right_poly = }\n{left.shape = } {right.shape = }")
         # log model performance
         frame_count += 1
         now = time.time()

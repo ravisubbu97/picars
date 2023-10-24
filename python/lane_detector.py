@@ -50,6 +50,6 @@ class LaneDetector():
         return left_poly, right_poly, left, right
 
     def __call__(self, cv_image):
-        left_poly, right_poly, _, _ = self.get_fit_and_probs(cv_image)
+        left_poly, right_poly, left, right = self.get_fit_and_probs(cv_image)
 
-        return left_poly, right_poly
+        return left_poly, right_poly, left, right
