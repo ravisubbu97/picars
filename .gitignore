@@ -16,3 +16,6 @@ target-aarch64-unknown-linux-gnu/
 
 # Ignore binary file
 bin/
+
+# Ignore temp.ipynb
+python/temp.ipynb
