@@ -40,8 +40,19 @@ clean:
     rm -rf ./target/
     rm -rf ./target-aarch64-unknown-linux-gnu/
     rm -rf ./target-armv7-unknown-linux-gnueabihf/
+    rm -rf /tmp/rustimport/
 
 # Git
 git:
     git status
     git diff
+
+# Create rust shared libraries for python
+py: clean
+    python -m rustimport build --release drishti/
+    rm -rf /tmp/rustimport/
+    python -m rustimport build --release dust/
+    rm -rf /tmp/rustimport/
+    python -m rustimport build --release vahana/
+    rm -rf /tmp/rustimport/
+    mv *.so ./python/
