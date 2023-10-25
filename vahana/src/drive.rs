@@ -1,3 +1,7 @@
+// rustimport:pyo3
+
+use pyo3::prelude::*;
+
 use anyhow::{Context, Result};
 use rppal::gpio::{Gpio, Level, OutputPin};
 
@@ -11,12 +15,15 @@ const MAX_PW: u16 = 2500;
 const MIN_PW: u16 = 500;
 // const CLOCK: u32 = 72_000_000;
 
+#[pyclass]
 pub struct Motor {
     pub pwm: PWM,
     pub dir: OutputPin,
 }
 
+#[pymethods]
 impl Motor {
+    #[new]
     pub fn new(pwm_pin: u8, dir_pin: u8) -> Result<Self> {
         let gpio = Gpio::new().context("Gpio init failed (drive)")?;
 
@@ -38,12 +45,15 @@ impl Motor {
     }
 }
 
+#[pyclass]
 pub struct Motors {
     pub left_motor: Motor,
     pub right_motor: Motor,
 }
 
+#[pymethods]
 impl Motors {
+    #[new]
     pub fn new() -> Result<Self> {
         let left_motor_pwm_pin: u8 = 12; // P12 (robot-hat)
         let left_motor_dir_pin: u8 = 23; // D4 (robot-hat)
@@ -88,11 +98,14 @@ impl Motors {
     }
 }
 
+#[pyclass]
 pub struct Servo {
     pwm: PWM,
 }
 
+#[pymethods]
 impl Servo {
+    #[new]
     pub fn new(pwm_pin: u8) -> Result<Self> {
         let mut pwm = PWM::new(pwm_pin).context("PWM init failed")?;
         pwm.period(4095)?; // ref: robot-hat

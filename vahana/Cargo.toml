@@ -3,8 +3,11 @@ name = "vahana"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "vahana"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 rppal = "0.14.1"
 anyhow = "1.0"
+pyo3 = { version = "0.18.3", features = ["extension-module", "anyhow"] }

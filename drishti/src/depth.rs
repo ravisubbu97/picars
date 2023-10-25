@@ -1,3 +1,7 @@
+// rustimport:pyo3
+
+use pyo3::prelude::*;
+
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -8,12 +12,15 @@ use rppal::gpio::{Gpio, InputPin, OutputPin};
 const TRIG_PIN: u8 = 27; // D2 (robot-hat)
 const ECHO_PIN: u8 = 22; // D3 (robot-hat)
 
+#[pyclass]
 pub struct Ultrasonic {
     trig: OutputPin,
     echo: InputPin,
 }
 
+#[pymethods]
 impl Ultrasonic {
+    #[new]
     pub fn new() -> Result<Self> {
         let trig = Gpio::new()?.get(TRIG_PIN)?.into_output();
         let echo = Gpio::new()?.get(ECHO_PIN)?.into_input();

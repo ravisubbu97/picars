@@ -1,3 +1,7 @@
+// rustimport:pyo3
+
+use pyo3::prelude::*;
+
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -35,6 +39,7 @@ fn reset_mcu() -> Result<()> {
     Ok(())
 }
 
+#[pyfunction]
 pub fn main_init() -> Result<()> {
     // RESET MCU
     reset_mcu().context("MCU RESET UNSUCCESSFULL [BEGIN]")?;
@@ -44,6 +49,7 @@ pub fn main_init() -> Result<()> {
     Ok(())
 }
 
+#[pyfunction]
 pub fn servos_init(init_angles: [i32; 3]) -> Result<[Servo; 3]> {
     let mut camera_servo_pin1 = Servo::new(0).context("camera_servo_pin1 init failed")?; // P0
     let mut camera_servo_pin2 = Servo::new(1).context("camera_servo_pin2 init failed")?; // P1
@@ -55,6 +61,7 @@ pub fn servos_init(init_angles: [i32; 3]) -> Result<[Servo; 3]> {
     Ok([camera_servo_pin1, camera_servo_pin2, dir_servo_pin])
 }
 
+#[pyfunction]
 pub fn motors_init(period: u16, prescaler: u16) -> Result<Motors> {
     let mut motors = Motors::new().context("motors init failed")?;
     // set period and prescaler for motors
@@ -66,6 +73,7 @@ pub fn motors_init(period: u16, prescaler: u16) -> Result<Motors> {
     Ok(motors)
 }
 
+#[pyfunction]
 pub fn ultrasonic_init() -> Result<Ultrasonic> {
     let ultrasonic = Ultrasonic::new().context("context")?;
 
