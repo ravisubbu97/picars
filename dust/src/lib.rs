@@ -22,6 +22,7 @@ use vahana::{
 //     Ok(type_pin.is_low())
 // }
 
+#[pyfunction]
 fn reset_mcu() -> Result<()> {
     // We already know reset pin is 5 -> so skipping functions
     // let rst_pin: u8 = if check_board_type().expect("Error checking board type") {

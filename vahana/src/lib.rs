@@ -1,11 +1,15 @@
+// rustimport:pyo3
+
+use pyo3::{exceptions::PyValueError, methods::OkWrap, prelude::*};
+
 pub mod axel;
 pub mod drive;
 pub mod neck;
 
 use anyhow::{Context, Result};
-use std::{process::Command, thread::sleep, time::Duration};
+use std::{fmt, process::Command, thread::sleep, time::Duration};
 
-use rppal::i2c::I2c;
+use rppal::i2c::{self, I2c};
 
 const I2C_BUS: u8 = 1;
 const REG_PW: u8 = 0x20; // REG_CHN
@@ -18,7 +22,48 @@ pub fn map_range(from_range: (i32, i32), to_range: (i32, i32), s: i32) -> i32 {
     to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
 
-pub fn init_i2c() -> Result<I2c> {
+#[derive(Debug)]
+pub struct I2cError(i2c::Error);
+
+impl From<I2cError> for PyErr {
+    fn from(error: I2cError) -> Self {
+        PyValueError::new_err(error.0.to_string())
+    }
+}
+
+// Implement std::error::Error for your custom error type
+impl std::error::Error for I2cError {
+    fn description(&self) -> &str {
+        "I2C ERROR"
+    }
+
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        Some(&self.0)
+    }
+}
+
+impl fmt::Display for I2cError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "I2C ERROR")
+    }
+}
+
+impl From<i2c::Error> for I2cError {
+    fn from(other: i2c::Error) -> Self {
+        Self(other)
+    }
+}
+
+impl OkWrap<I2cError> for Result<I2c, I2cError> {
+    type Error = I2cError;
+
+    fn wrap(self, py: Python<'_>) -> Result<Py<PyAny>, Self::Error> {
+        Ok(py.None())
+    }
+}
+
+#[pyfunction]
+pub fn init_i2c() -> Result<I2c, I2cError> {
     let mut i2c = I2c::with_bus(I2C_BUS)?;
     // wait after I2C init to avopid 121 IO error
     sleep(Duration::from_secs(1));
@@ -70,13 +115,16 @@ pub fn scan_i2c(i2c: I2c) -> Vec<u16> {
     addresses
 }
 
+#[pyclass]
 pub struct PWM {
     channel: u8,
     period: Vec<u16>,
     bus: I2c,
 }
 
+#[pymethods]
 impl PWM {
+    #[new]
     pub fn new(channel: u8) -> Result<Self> {
         let bus = init_i2c().context("PWM I2C INIT FAILED")?;
         let period = vec![0, 0, 0, 0];
