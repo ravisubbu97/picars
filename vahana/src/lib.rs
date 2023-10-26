@@ -1,15 +1,15 @@
 // rustimport:pyo3
 
-use pyo3::{exceptions::PyValueError, methods::OkWrap, prelude::*};
+use pyo3::prelude::*;
 
 pub mod axel;
 pub mod drive;
 pub mod neck;
 
 use anyhow::{Context, Result};
-use std::{fmt, process::Command, thread::sleep, time::Duration};
+use std::{process::Command, thread::sleep, time::Duration};
 
-use rppal::i2c::{self, I2c};
+use rppal::i2c::I2c;
 
 const I2C_BUS: u8 = 1;
 const REG_PW: u8 = 0x20; // REG_CHN
@@ -22,58 +22,35 @@ pub fn map_range(from_range: (i32, i32), to_range: (i32, i32), s: i32) -> i32 {
     to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
 
-#[derive(Debug)]
-pub struct I2cError(i2c::Error);
-
-impl From<I2cError> for PyErr {
-    fn from(error: I2cError) -> Self {
-        PyValueError::new_err(error.0.to_string())
-    }
+#[pyclass]
+pub struct MyI2c {
+    pub i2c: I2c,
 }
 
-// Implement std::error::Error for your custom error type
-impl std::error::Error for I2cError {
-    fn description(&self) -> &str {
-        "I2C ERROR"
-    }
+#[pymethods]
+impl MyI2c {
+    #[new]
+    pub fn new() -> Result<MyI2c> {
+        let mut i2c = I2c::with_bus(I2C_BUS).context("Constructing new I2C failed")?;
+        // wait after I2C init to avopid 121 IO error
+        sleep(Duration::from_secs(1));
 
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        Some(&self.0)
-    }
-}
+        i2c.set_slave_address(SLAVE_ADDR)
+            .context("Setting SLAVE addr failed")?;
+        i2c.smbus_send_byte(0x2C)
+            .context("Sending byte 0x2c failed")?;
+        i2c.smbus_send_byte(0x00)
+            .context("Sending byte 0x00 failed")?;
+        i2c.smbus_send_byte(0x00)
+            .context("Sending byte 0x00 failed")?;
 
-impl fmt::Display for I2cError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "I2C ERROR")
-    }
-}
-
-impl From<i2c::Error> for I2cError {
-    fn from(other: i2c::Error) -> Self {
-        Self(other)
-    }
-}
-
-impl OkWrap<I2cError> for Result<I2c, I2cError> {
-    type Error = I2cError;
-
-    fn wrap(self, py: Python<'_>) -> Result<Py<PyAny>, Self::Error> {
-        Ok(py.None())
+        Ok(MyI2c { i2c })
     }
 }
 
 #[pyfunction]
-pub fn init_i2c() -> Result<I2c, I2cError> {
-    let mut i2c = I2c::with_bus(I2C_BUS)?;
-    // wait after I2C init to avopid 121 IO error
-    sleep(Duration::from_secs(1));
-
-    i2c.set_slave_address(SLAVE_ADDR)?;
-    i2c.smbus_send_byte(0x2C)?;
-    i2c.smbus_send_byte(0x00)?;
-    i2c.smbus_send_byte(0x00)?;
-
-    Ok(i2c)
+pub fn init_i2c() -> Result<MyI2c> {
+    MyI2c::new()
 }
 
 fn run_command(cmd: &str) -> Result<(i32, String), Box<dyn std::error::Error>> {
@@ -127,6 +104,7 @@ impl PWM {
     #[new]
     pub fn new(channel: u8) -> Result<Self> {
         let bus = init_i2c().context("PWM I2C INIT FAILED")?;
+        let bus = bus.i2c;
         let period = vec![0, 0, 0, 0];
         let mut pwm = Self {
             channel,
