@@ -19,12 +19,16 @@ def us_check():
 
 
 # Motors example check
-def motors_chcek():
+def motors_check():
     motors = ruspy.motors_init(50, 100)
     motors.forward(10)
+    time.sleep(3)
     motors.turn_left(5)
+    time.sleep(3)
     motors.turn_right(15)
+    time.sleep(3)
     motors.backward(20)
+    time.sleep(3)
     motors.stop()
 
 
@@ -34,8 +38,11 @@ def servos_check():
         [10, 20, 30]
     )
     camera_servo_pin1.angle(90)
+    time.sleep(1)
     camera_servo_pin2.angle(90)
+    time.sleep(1)
     dir_servo_pin.angle(90)
+    time.sleep(1)
 
 
 # Cameras example check
@@ -105,6 +112,10 @@ def try_func(func):
 
 def checks():
     try_func(us_check)
-    try_func(motors_chcek)
+    try_func(motors_check)
     try_func(servos_check)
     try_func(cameras_check)
+
+
+if __name__ == "__main__":
+    checks()
