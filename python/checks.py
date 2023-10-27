@@ -1,4 +1,5 @@
 import time
+import traceback
 
 import cv2
 import rustimport.import_hook  # noqa: F401
@@ -105,6 +106,7 @@ def try_func(func):
         func()
     except Exception as e:
         print(f"ERROR in {func.__name__}: {e}")
+        traceback.print_exc()
     finally:
         print("FINAL RESET")
         ruspy.reset_mcu()
