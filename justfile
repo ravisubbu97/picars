@@ -49,10 +49,5 @@ git:
 
 # Create rust shared libraries for python
 py: clean
-    python -m rustimport build --release drishti/
-    rm -rf /tmp/rustimport/
-    python -m rustimport build --release dust/
-    rm -rf /tmp/rustimport/
-    python -m rustimport build --release vahana/
-    rm -rf /tmp/rustimport/
+    python -m rustimport build --release ruspy/
     cp *.so ./python/
