@@ -17,7 +17,7 @@ def us_check():
 
 # Motors example check
 def motors_chcek():
-    motors = ruspy.motors_init()
+    motors = ruspy.motors_init(50, 100)
     motors.forward(10)
     motors.turn_left(5)
     motors.turn_right(15)
@@ -35,7 +35,14 @@ def servos_check():
     dir_servo_pin.angle(90)
 
 
-ruspy.main_init()
-us_check()
-motors_chcek()
-servos_check()
+def checks():
+    try:
+        ruspy.main_init()
+        us_check()
+        motors_chcek()
+        servos_check()
+    except Exception as e:
+        print(f"ERROR: {e}")
+    finally:
+        print("FINAL RESET")
+        ruspy.reset_mcu()
