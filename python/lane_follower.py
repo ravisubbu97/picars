@@ -14,17 +14,19 @@ maxLineGap = 10
 
 def run_robot(secs=10):
     started = time.time()
-    print("VIDEO CAPTURE STARTED")
     vid_cap = create_video_capture(640, 480, 30)
     motors = ruspy.motors_init(50, 100)
-    motors.speed(10, 10)
-    motors.forward(10)
-    time.sleep(1)
+    motors.speed(100, 100)
+    motors.forward(100)
+    time.sleep(0.5)
 
     while (time.time() - started) < secs:
+        print("VIDEO CAPTURE STARTED")
         for ret, frame in vid_cap.read():
             if not ret:
+                print("FRAME NOT CAPTURED")
                 continue
+            print("FRAME CAPTURED")
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred = cv2.GaussianBlur(gray, (5, 5), 0)
             edged = cv2.Canny(blurred, 85, 85)
@@ -35,6 +37,7 @@ def run_robot(secs=10):
             if lines is None:
                 print("NO LINES DETECTED")
             else:
+                print("CALCULATE THETA")
                 for x in range(0, len(lines)):
                     for x1, y1, x2, y2 in lines[x]:
                         cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -44,16 +47,16 @@ def run_robot(secs=10):
                 threshold = 6
                 if theta > threshold:
                     print("LEFT")
-                    motors.turn_left(5)
+                    motors.turn_left(100)
                 if theta < -threshold:
                     print("RIGHT")
-                    motors.turn_right(15)
+                    motors.turn_right(100)
                 if abs(theta) < threshold:
                     print("STRAIGHT")
-                    motors.forward(10)
+                    motors.forward(100)
 
             theta = 0
-
+    print("STOPPING MOTORS")
     motors.stop()
 
 
