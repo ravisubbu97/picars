@@ -5,6 +5,7 @@ members = [
     "dust",
     "drishti",
     "vahana",
+    "ruspy",
 ]
 
-default-members = ["dust"]
+default-members = ["ruspy"]

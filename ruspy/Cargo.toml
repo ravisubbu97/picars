@@ -1,0 +1,13 @@
+[package]
+name = "ruspy"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ruspy"
+crate-type = ["cdylib"]
+
+[dependencies]
+rppal = "0.14.1"
+anyhow = "1.0"
+pyo3 = { version = "0.18.3", features = ["extension-module", "anyhow"] }
