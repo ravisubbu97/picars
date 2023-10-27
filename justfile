@@ -55,4 +55,4 @@ py: clean
     rm -rf /tmp/rustimport/
     python -m rustimport build --release vahana/
     rm -rf /tmp/rustimport/
-    mv *.so ./python/
+    cp *.so ./python/
