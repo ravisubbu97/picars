@@ -22,3 +22,7 @@ python/temp.ipynb
 
 # Ignore pycache
 python/__pycache__/
+
+# Ignore shared objects
+*.so
+python/*.so
