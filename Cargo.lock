@@ -258,6 +258,7 @@ name = "vahana"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "drishti",
  "pyo3",
  "rppal",
 ]

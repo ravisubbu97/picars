@@ -11,3 +11,7 @@ crate-type = ["cdylib", "rlib"]
 rppal = "0.14.1"
 anyhow = "1.0"
 pyo3 = { version = "0.18.3", features = ["extension-module", "anyhow"] }
+
+
+[dependencies.drishti]
+path = "../drishti"
